@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeção Financeira Sincronizada</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    .editable-cell input {
+      background: transparent;
+      border: 1px solid transparent;
+      padding: 0;
+      text-align: right;
+      width: 100%;
+      min-width: 60px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .editable-cell input:focus {
+      outline: none;
+      border-color: #a78bfa;
+      background-color: #f3f4f6;
+    }
+    
+    #app-container.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen p-4 sm:p-8 text-gray-800">
+  <div class="max-w-7xl mx-auto bg-white p-6 sm:p-10 rounded-3xl shadow-xl border border-gray-200">
+    
+    <!-- CABEÇALHO E LOGIN -->
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 border-b pb-4">
+        <div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-center sm:text-left text-purple-800">
+              Projeção Financeira
+            </h1>
+            <p class="text-center sm:text-left text-gray-500">
+              Sincronizada na nuvem com Firebase.
+            </p>
+        </div>
+        <div id="auth-container" class="mt-4 sm:mt-0">
+            <!-- Botão de Login/Logout e status do usuário aparecerão aqui -->
+        </div>
+    </div>
+    
+    <div id="app-container" class="disabled">
+        <!-- PAINEL DE CONTROLE -->
+        <div class="space-y-6 bg-purple-50 p-6 rounded-2xl shadow-inner border border-purple-200 mb-8">
+          <div>
+            <h2 class="text-xl font-bold mb-3 text-purple-800">Bancos e Contas</h2>
+            <div id="banks-container" class="space-y-3">
+              <!-- Inputs de bancos gerados via JS -->
+            </div>
+            <button id="add-bank-button" class="mt-4 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition duration-300">
+              + Adicionar Banco
+            </button>
+          </div>
+
+          <div>
+            <h2 class="text-xl font-bold mb-3 text-purple-800">Configurações Gerais</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex flex-col p-4 bg-white rounded-lg border">
+                <label for="total-goal" class="text-sm font-semibold text-gray-600 mb-1">Meta Financeira:</label>
+                <div class="flex items-center">
+                  <span class="text-lg font-bold text-blue-600">R$</span>
+                  <input type="number" id="total-goal" value="1000000.00" class="text-lg font-bold text-blue-600 text-left bg-transparent border-none focus:outline-none w-full">
+                </div>
+              </div>
+              <div class="flex flex-col p-4 bg-white rounded-lg border">
+                <label for="default-contribution" class="text-sm font-semibold text-gray-600 mb-1">Aporte Mensal Padrão:</label>
+                <div class="flex items-center">
+                  <span class="text-lg font-bold text-green-600">R$</span>
+                  <input type="number" id="default-contribution" value="6000.00" class="text-lg font-bold text-green-600 text-left bg-transparent border-none focus:outline-none w-full">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 mb-8">
+          <button id="recalculate-button" class="w-full sm:w-1/3 flex items-center justify-center gap-2 px-8 py-4 bg-purple-600 text-white font-bold rounded-full shadow-lg hover:bg-purple-700 transition duration-300 text-lg">
+            Recalcular Projeção
+          </button>
+          <button id="save-button" class="w-full sm:w-1/3 flex items-center justify-center gap-2 px-8 py-4 bg-gray-500 text-white font-bold rounded-full shadow-lg hover:bg-gray-600 transition duration-300 text-lg">
+            Salvar na Nuvem
+          </button>
+          <button id="reset-button" class="w-full sm:w-1/3 flex items-center justify-center gap-2 px-8 py-4 bg-red-500 text-white font-bold rounded-full shadow-lg hover:bg-red-600 transition duration-300 text-lg">
+            Resetar para Padrão
+          </button>
+        </div>
+
+        <div id="status-message" class="text-center text-sm font-medium text-gray-600 mb-4"></div>
+
+        <div class="overflow-x-auto rounded-xl shadow-lg border border-gray-300">
+          <table class="min-w-full divide-y divide-gray-300 bg-white">
+            <thead id="projection-table-head" class="bg-purple-100">
+              <!-- Cabeçalho da tabela gerado via JS -->
+            </thead>
+            <tbody id="projection-table-body" class="bg-white divide-y divide-gray-200">
+              <!-- Corpo da tabela gerado via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-8 text-center text-lg sm:text-xl font-bold bg-green-50 p-6 rounded-2xl shadow-inner border border-green-200">
+          <p class="text-gray-700" id="final-summary">
+            Faça login para carregar seus dados ou começar uma nova projeção.
+          </p>
+        </div>
+    </div>
+    
+    <div class="text-center mt-10 text-sm text-gray-500">
+      <p>Powered by: Fabrício Garcia</p>
+    </div>
+
+  </div>
+
+  <!-- FIREBASE SDKs -->
+  <script type="module">
+    // Importações do Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // --- CONFIGURAÇÃO DO FIREBASE (COLADO DA SUA CONTA) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAoVfT4ONiHHjMPL6RIRs6zogbrKE4FVS8",
+      authDomain: "financeiro-9d7b1.firebaseapp.com",
+      projectId: "financeiro-9d7b1",
+      storageBucket: "financeiro-9d7b1.appspot.com",
+      messagingSenderId: "516983551974",
+      appId: "1:516983551974:web:c98dbf705694bb9e468827"
+    };
+
+    // Inicializa Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    // --- ESTADO DA APLICAÇÃO ---
+    const totalMonthsToShow = 600;
+    let state = {};
+    let tableInputData = [];
+    let currentUser = null;
+
+    function getDefaultState() {
+        return {
+            banks: [
+                { id: Date.now(), name: 'Inter', balance: 95125.41, yieldRate: 0.91, limit: 150000 },
+                { id: Date.now() + 1, name: 'Nubank', balance: 97765.95, yieldRate: 1.36, limit: null }
+            ],
+            general: {
+                totalGoal: 1000000,
+                defaultContribution: 6000
+            }
+        };
+    }
+    
+    // --- FUNÇÕES DE AUTENTICAÇÃO E UI DE LOGIN ---
+    const authContainer = document.getElementById('auth-container');
+    const appContainer = document.getElementById('app-container');
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUser = user;
+            authContainer.innerHTML = `
+                <div class="text-right">
+                    <p class="text-sm text-gray-600">${user.displayName}</p>
+                    <button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button>
+                </div>
+            `;
+            document.getElementById('logout-button').addEventListener('click', () => signOut(auth));
+            appContainer.classList.remove('disabled');
+            loadState();
+        } else {
+            currentUser = null;
+            authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition duration-300">Entrar com Google</button>';
+            document.getElementById('login-button').addEventListener('click', () => signInWithPopup(auth, provider));
+            appContainer.classList.add('disabled');
+            resetToDefault(false); // Reseta a UI sem perguntar
+        }
+    });
+
+    // --- FUNÇÕES DE RENDERIZAÇÃO DA UI (sem alterações) ---
+    function renderBankInputs() {
+        const container = document.getElementById('banks-container');
+        container.innerHTML = state.banks.map((bank, index) => `
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 bg-white rounded-lg border">
+                <input type="text" value="${bank.name}" data-index="${index}" data-field="name" placeholder="Nome do Banco" class="bank-input col-span-1 md:col-span-1 border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                <div class="col-span-1 md:col-span-4 grid grid-cols-1 md:grid-cols-4 gap-2">
+                    <input type="number" value="${bank.balance}" data-index="${index}" data-field="balance" placeholder="Saldo Inicial" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Saldo Inicial">
+                    <input type="number" value="${bank.yieldRate}" data-index="${index}" data-field="yieldRate" placeholder="Rendimento %" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Rendimento Mensal %">
+                    <input type="number" value="${bank.limit || ''}" data-index="${index}" data-field="limit" placeholder="Limite (opcional)" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Limite de Aporte (opcional)">
+                    <button data-index="${index}" class="remove-bank-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors p-2">- Remover</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderGeneralInputs() {
+        document.getElementById('total-goal').value = state.general.totalGoal;
+        document.getElementById('default-contribution').value = state.general.defaultContribution;
+    }
+
+    function renderTable() {
+        if (!currentUser) return; // Não renderiza se não estiver logado
+        const thead = document.getElementById('projection-table-head');
+        const tbody = document.getElementById('projection-table-body');
+        const finalSummary = document.getElementById('final-summary');
+
+        // Renderizar Cabeçalho
+        let headerHtml = '<tr><th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">Mês</th>';
+        state.banks.forEach(bank => {
+            headerHtml += `<th colspan="4" class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-r border-gray-300">${bank.name}</th>`;
+        });
+        headerHtml += '<th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Saldo Total</th></tr><tr>';
+        state.banks.forEach(() => {
+            headerHtml += `
+                <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">Saldo Início</th>
+                <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">Aporte</th>
+                <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">Rendimento (%)</th>
+                <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">Saldo Final</th>
+            `;
+        });
+        headerHtml += '</tr>';
+        thead.innerHTML = headerHtml;
+
+        // Calcular Projeção
+        const projection = calculateProjection();
+
+        // Renderizar Corpo
+        tbody.innerHTML = projection.results.map((month, monthIndex) => {
+            let rowHtml = `<tr class="${month.isGoalMonth ? 'bg-green-100 font-bold' : ''}">
+                <td class="px-3 py-3 whitespace-nowrap text-sm text-center font-medium text-gray-900 border-r border-gray-300">${month.date}</td>`;
+            
+            month.banks.forEach((bankData, bankIndex) => {
+                rowHtml += `
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 border-r border-gray-300">${formatCurrency(bankData.startBalance)}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-right font-medium text-green-600 border-r border-gray-300 editable-cell">
+                        <input type="number" step="100" value="${bankData.contribution.toFixed(0)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="contribution" class="table-input">
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-purple-600 border-r border-gray-300 editable-cell">
+                        <input type="number" step="0.01" value="${bankData.yieldRate.toFixed(2)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="yieldRate" class="table-input">
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-right font-bold text-gray-900 border-r border-gray-300">${formatCurrency(bankData.endBalance)}</td>
+                `;
+            });
+
+            rowHtml += `<td class="px-3 py-3 whitespace-nowrap text-sm text-right font-extrabold text-purple-800">${formatCurrency(month.totalBalance)}</td></tr>`;
+            return rowHtml;
+        }).join('');
+
+        // Renderizar Resumo Final
+        if (projection.goalReached) {
+            const { years, months, finalTotal } = projection.goalInfo;
+            finalSummary.innerHTML = `
+                Meta atingida em aproximadamente <span class="text-green-700">${years} anos e ${months} meses</span>.<br>
+                Saldo total no mês final: <span class="text-green-700">${formatCurrency(finalTotal)}</span>`;
+        } else {
+            const finalTotal = projection.results.length > 0 ? projection.results.slice(-1)[0].totalBalance : 0;
+            finalSummary.innerHTML = `
+                Meta não atingida no período de ${Math.floor(totalMonthsToShow / 12)} anos.<br>
+                Saldo final projetado: <span class="text-orange-700">${formatCurrency(finalTotal)}</span>`;
+        }
+    }
+
+    // --- LÓGICA DE CÁLCULO (sem alterações) ---
+    function calculateProjection() {
+        let balances = state.banks.map(b => b.balance);
+        let currentDate = new Date();
+        currentDate.setDate(1);
+        
+        const results = [];
+        let goalReached = false;
+        let goalInfo = {};
+
+        for (let i = 0; i < totalMonthsToShow; i++) {
+            const monthData = { date: currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), banks: [], totalBalance: 0 };
+            const monthInputs = tableInputData[i] || {};
+
+            const contributions = monthInputs.contributions ?? [];
+            const yieldRates = monthInputs.yieldRates ?? [];
+
+            let defaultContribution = state.general.defaultContribution;
+            let contributionTargetIndex = -1;
+
+            for(let j=0; j < state.banks.length; j++) {
+                const bankLimit = state.banks[j].limit;
+                if(bankLimit === null || balances[j] < bankLimit) {
+                    contributionTargetIndex = j;
+                    break;
+                }
+            }
+            if(contributionTargetIndex === -1 && state.banks.length > 0) {
+                contributionTargetIndex = state.banks.length - 1;
+            }
+
+            state.banks.forEach((bank, j) => {
+                const startBalance = balances[j];
+                const contribution = contributions[j] ?? (j === contributionTargetIndex ? defaultContribution : 0);
+                const yieldRate = yieldRates[j] ?? bank.yieldRate;
+                const yieldAmount = startBalance * (yieldRate / 100);
+                const endBalance = startBalance + contribution + yieldAmount;
+                
+                monthData.banks.push({ startBalance, contribution, yieldRate, yieldAmount, endBalance });
+                balances[j] = endBalance;
+            });
+
+            monthData.totalBalance = balances.reduce((sum, b) => sum + b, 0);
+            
+            if (monthData.totalBalance >= state.general.totalGoal && !goalReached) {
+                goalReached = true;
+                monthData.isGoalMonth = true;
+                const totalMonths = i + 1;
+                goalInfo = {
+                    years: Math.floor(totalMonths / 12),
+                    months: totalMonths % 12,
+                    finalTotal: monthData.totalBalance
+                };
+            }
+            
+            results.push(monthData);
+            currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+        return { results, goalReached, goalInfo };
+    }
+
+    // --- FUNÇÕES DE DADOS (AGORA COM FIREBASE) ---
+    async function loadState() {
+        if (!currentUser) return;
+        const docRef = doc(db, "users", currentUser.uid);
+        const statusMessage = document.getElementById('status-message');
+        statusMessage.textContent = 'Carregando dados da nuvem...';
+
+        try {
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                state = {
+                    banks: data.banks || getDefaultState().banks,
+                    general: data.general || getDefaultState().general
+                };
+                tableInputData = data.monthlyEdits || [];
+                statusMessage.textContent = 'Dados carregados com sucesso!';
+            } else {
+                state = getDefaultState();
+                tableInputData = [];
+                statusMessage.textContent = 'Nenhum dado salvo encontrado. Começando uma nova projeção.';
+            }
+        } catch (error) {
+            console.error("Erro ao carregar dados do Firestore:", error);
+            statusMessage.textContent = 'Erro ao carregar dados.';
+            state = getDefaultState();
+            tableInputData = [];
+        }
+        
+        renderBankInputs();
+        renderGeneralInputs();
+        renderTable();
+    }
+
+    async function saveState() {
+        if (!currentUser) return;
+        const docRef = doc(db, "users", currentUser.uid);
+        const statusMessage = document.getElementById('status-message');
+        
+        const dataToSave = {
+            banks: state.banks,
+            general: state.general,
+            monthlyEdits: tableInputData
+        };
+
+        try {
+            statusMessage.textContent = 'Salvando na nuvem...';
+            await setDoc(docRef, dataToSave);
+            statusMessage.textContent = 'Valores salvos com sucesso na nuvem!';
+        } catch (error) {
+            console.error("Erro ao salvar no Firestore:", error);
+            statusMessage.textContent = 'Erro ao salvar os dados.';
+        }
+    }
+
+    function resetToDefault(confirmReset = true) {
+        if (confirmReset && !confirm('Tem certeza que deseja resetar todos os dados para o padrão? Isso não pode ser desfeito.')) {
+            return;
+        }
+        state = getDefaultState();
+        tableInputData = [];
+        renderBankInputs();
+        renderGeneralInputs();
+        renderTable();
+        if (currentUser) {
+            saveState(); // Salva o estado resetado na nuvem
+        }
+    }
+
+    // --- HELPERS E EVENT HANDLERS (sem alterações) ---
+    const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+
+    function handleBankInputChange(e) {
+        const { index, field } = e.target.dataset;
+        let value = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+        if (field === 'limit' && isNaN(value)) value = null;
+        if (!isNaN(value) || field === 'name') {
+            state.banks[index][field] = value;
+            renderTable();
+        }
+    }
+
+    function handleGeneralInputChange(e) {
+        const field = e.target.id === 'total-goal' ? 'totalGoal' : 'defaultContribution';
+        const value = parseFloat(e.target.value);
+        if (!isNaN(value)) {
+            state.general[field] = value;
+            renderTable();
+        }
+    }
+
+    function handleTableInputChange(e) {
+        const { monthIndex, bankIndex, field } = e.target.dataset;
+        const value = parseFloat(e.target.value);
+
+        if (isNaN(value)) return;
+        const monthIdx = parseInt(monthIndex);
+        const bankIdx = parseInt(bankIndex);
+
+        while (tableInputData.length <= monthIdx) {
+            tableInputData.push({});
+        }
+        
+        const fieldMap = {
+            contribution: 'contributions',
+            yieldRate: 'yieldRates'
+        };
+        const arrayField = fieldMap[field];
+
+        if (!tableInputData[monthIdx][arrayField]) {
+            tableInputData[monthIdx][arrayField] = [];
+        }
+        tableInputData[monthIdx][arrayField][bankIdx] = value;
+
+        renderTable();
+    }
+
+    // --- INICIALIZAÇÃO E BINDING DE EVENTOS ---
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('add-bank-button').addEventListener('click', () => {
+            if (!currentUser) return;
+            state.banks.push({ id: Date.now(), name: 'Novo Banco', balance: 0, yieldRate: 1.0, limit: null });
+            renderBankInputs();
+            renderTable();
+        });
+
+        document.getElementById('banks-container').addEventListener('change', (e) => {
+            if (e.target.classList.contains('bank-input')) handleBankInputChange(e);
+        });
+
+        document.getElementById('banks-container').addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-bank-button')) {
+                const index = e.target.dataset.index;
+                state.banks.splice(index, 1);
+                renderBankInputs();
+                renderTable();
+            }
+        });
+
+        document.getElementById('total-goal').addEventListener('change', handleGeneralInputChange);
+        document.getElementById('default-contribution').addEventListener('change', handleGeneralInputChange);
+        
+        document.getElementById('projection-table-body').addEventListener('change', (e) => {
+            if (e.target.classList.contains('table-input')) handleTableInputChange(e);
+        });
+
+        document.getElementById('recalculate-button').addEventListener('click', renderTable);
+        document.getElementById('save-button').addEventListener('click', saveState);
+        document.getElementById('reset-button').addEventListener('click', resetToDefault);
+    });
+  </script>
+</body>
+</html>
