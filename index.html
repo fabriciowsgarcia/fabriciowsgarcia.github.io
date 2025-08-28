@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- CORREÇÃO: Política de Segurança de Conteúdo ajustada para o método de Pop-up -->
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://*.firebaseio.com https://www.gstatic.com https://apis.google.com https://www.google.com https://securetoken.googleapis.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; object-src 'self'; connect-src 'self' wss://*.firebaseio.com https://www.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com;">
-  <title>Projeção Financeira v15</title>
+  <title>Projeção Financeira v16</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -510,12 +510,15 @@
             if (e.target.classList.contains('bank-input')) handleBankInputChange(e);
         });
 
+        // CORREÇÃO: Lógica de remoção de banco atualizada
         document.getElementById('banks-container').addEventListener('click', (e) => {
             if (e.target.classList.contains('remove-bank-button')) {
-                const index = e.target.dataset.index;
-                state.banks.splice(index, 1);
-                renderBankInputs();
-                renderTable();
+                const index = parseInt(e.target.dataset.index);
+                if (!isNaN(index) && state.banks[index]) {
+                    state.banks.splice(index, 1); // Modifica o estado diretamente
+                    renderBankInputs(); // Redesenha a UI
+                    renderTable(); // Recalcula a projeção
+                }
             }
         });
 
