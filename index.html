@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- CORREÇÃO FINAL: Política de Segurança de Conteúdo que permite a conexão de autenticação -->
+  <!-- CORREÇÃO: Política de Segurança de Conteúdo ajustada para o método de Pop-up -->
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://*.firebaseio.com https://www.gstatic.com https://apis.google.com https://www.google.com https://securetoken.googleapis.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; object-src 'self'; connect-src 'self' wss://*.firebaseio.com https://www.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com;">
-  <title>Projeção Financeira v13</title>
+  <title>Projeção Financeira v14</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -144,7 +144,7 @@
   <script type="module">
     // Importações do Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // --- CONFIGURAÇÃO DO FIREBASE (COLADO DA SUA CONTA) ---
@@ -186,42 +186,24 @@
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app-container');
 
-    // CORREÇÃO FINAL: Lógica de autenticação síncrona e explícita
-    async function initializeAuth() {
-        try {
-            await setPersistence(auth, browserLocalPersistence);
-            const result = await getRedirectResult(auth);
-            if (result) {
-                // O usuário acabou de fazer login via redirecionamento.
-                // O onAuthStateChanged abaixo cuidará de atualizar a UI.
-                console.log("Login via redirecionamento bem-sucedido!", result.user);
-            }
-            
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    currentUser = user;
-                    authContainer.innerHTML = `
-                        <div class="text-right">
-                            <p class="text-sm text-gray-600">${user.displayName}</p>
-                            <button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button>
-                        </div>
-                    `;
-                    appContainer.classList.remove('disabled');
-                    loadState();
-                } else {
-                    currentUser = null;
-                    authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition duration-300">Entrar com Google</button>';
-                    appContainer.classList.add('disabled');
-                    resetToDefault(false);
-                }
-            });
-
-        } catch (error) {
-            console.error("Erro na inicialização da autenticação:", error);
-            authContainer.innerHTML = `<p class="text-red-500">Erro de autenticação. Tente novamente.</p>`;
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUser = user;
+            authContainer.innerHTML = `
+                <div class="text-right">
+                    <p class="text-sm text-gray-600">${user.displayName}</p>
+                    <button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button>
+                </div>
+            `;
+            appContainer.classList.remove('disabled');
+            loadState();
+        } else {
+            currentUser = null;
+            authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition duration-300">Entrar com Google</button>';
+            appContainer.classList.add('disabled');
+            resetToDefault(false);
         }
-    }
-
+    });
 
     // --- FUNÇÕES DE RENDERIZAÇÃO DA UI (sem alterações) ---
     function renderBankInputs() {
@@ -486,11 +468,9 @@
 
     // --- INICIALIZAÇÃO E BINDING DE EVENTOS ---
     document.addEventListener('DOMContentLoaded', () => {
-        initializeAuth(); // Inicia a lógica de autenticação
-
         document.getElementById('auth-container').addEventListener('click', (e) => {
             if (e.target && e.target.id === 'login-button') {
-                signInWithRedirect(auth, provider).catch(err => console.error("Erro ao iniciar o login:", err));
+                signInWithPopup(auth, provider).catch(err => console.error("Erro ao iniciar o login com popup:", err));
             }
             if (e.target && e.target.id === 'logout-button') {
                 signOut(auth).catch(err => console.error("Erro ao fazer logout:", err));
