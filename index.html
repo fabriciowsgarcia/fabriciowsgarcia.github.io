@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- CORREÇÃO: Política de Segurança de Conteúdo ajustada para o método de Pop-up -->
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://*.firebaseio.com https://www.gstatic.com https://apis.google.com https://www.google.com https://securetoken.googleapis.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; object-src 'self'; connect-src 'self' wss://*.firebaseio.com https://www.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com;">
-  <title>Projeção Financeira v14</title>
+  <title>Projeção Financeira v15</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -383,8 +383,30 @@
         renderTable();
     }
 
+    // CORREÇÃO: Função para ler os valores dos inputs e atualizar o estado
+    function updateStateFromInputs() {
+        if (!state.general) state.general = {};
+        state.general.totalGoal = parseFloat(document.getElementById('total-goal').value) || 0;
+        state.general.defaultContribution = parseFloat(document.getElementById('default-contribution').value) || 0;
+
+        document.querySelectorAll('#banks-container .bank-input[data-field]').forEach(input => {
+            const { index, field } = input.dataset;
+            const idx = parseInt(index);
+            if (state.banks && state.banks[idx]) {
+                let value = input.type === 'number' ? parseFloat(input.value) : input.value;
+                if (field === 'limit' && (isNaN(value) || input.value === '')) {
+                    value = null;
+                }
+                state.banks[idx][field] = value;
+            }
+        });
+    }
+
     async function saveState() {
         if (!currentUser) return;
+        
+        updateStateFromInputs(); // Garante que o estado está atualizado antes de salvar
+
         const docRef = doc(db, "users", currentUser.uid);
         const statusMessage = document.getElementById('status-message');
         
