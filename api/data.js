@@ -3,8 +3,11 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 
-// Pega a chave de serviço segura a partir das variáveis de ambiente
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+// CORREÇÃO: Descodifica a chave de serviço a partir da variável de ambiente em Base64
+// Isto garante que o JSON não seja corrompido.
+const encodedKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+const decodedKey = Buffer.from(encodedKey, 'base64').toString('utf-8');
+const serviceAccount = JSON.parse(decodedKey);
 
 // Inicializa o app do Firebase Admin (apenas se ainda não foi inicializado)
 if (!getApps().length) {
