@@ -142,7 +142,7 @@
   <script type="module">
     // Importações do Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // --- CONFIGURAÇÃO DO FIREBASE (COLADO DA SUA CONTA) ---
@@ -184,6 +184,14 @@
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app-container');
 
+    // Lida com o resultado do redirecionamento de login quando a página carrega
+    getRedirectResult(auth)
+      .catch((error) => {
+        console.error("Erro durante o redirecionamento do login:", error);
+        const statusMessage = document.getElementById('status-message');
+        statusMessage.textContent = `Erro no login: ${error.message}`;
+      });
+
     onAuthStateChanged(auth, (user) => {
         if (user) {
             currentUser = user;
@@ -199,7 +207,8 @@
         } else {
             currentUser = null;
             authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition duration-300">Entrar com Google</button>';
-            document.getElementById('login-button').addEventListener('click', () => signInWithPopup(auth, provider));
+            // MUDANÇA: Usa signInWithRedirect em vez de signInWithPopup
+            document.getElementById('login-button').addEventListener('click', () => signInWithRedirect(auth, provider));
             appContainer.classList.add('disabled');
             resetToDefault(false); // Reseta a UI sem perguntar
         }
