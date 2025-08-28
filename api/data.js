@@ -3,14 +3,21 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 
-// CORREÇÃO: Descodifica a chave de serviço a partir da variável de ambiente em Base64
-// Isto garante que o JSON não seja corrompido.
-const encodedKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-const decodedKey = Buffer.from(encodedKey, 'base64').toString('utf-8');
-const serviceAccount = JSON.parse(decodedKey);
+// --- INÍCIO DA CONFIGURAÇÃO SEGURA ---
+let serviceAccount;
+try {
+  // Lê a chave de serviço diretamente da variável de ambiente da Vercel.
+  // O conteúdo deve ser o JSON completo, como uma string.
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+} catch (error) {
+  console.error("ERRO CRÍTICO: Falha ao analisar a chave de serviço do Firebase. Verifique a variável de ambiente na Vercel.", error);
+  // Se a chave falhar, não podemos continuar.
+}
+// --- FIM DA CONFIGURAÇÃO SEGURA ---
+
 
 // Inicializa o app do Firebase Admin (apenas se ainda não foi inicializado)
-if (!getApps().length) {
+if (serviceAccount && !getApps().length) {
   initializeApp({
     credential: cert(serviceAccount)
   });
@@ -22,6 +29,11 @@ const auth = getAuth();
 
 // A função principal que lida com os pedidos
 export default async function handler(request, response) {
+  // Verifica se a chave de serviço foi carregada corretamente
+  if (!serviceAccount) {
+      return response.status(500).send('Erro de configuração do servidor: Chave do Firebase não encontrada.');
+  }
+
   // Verifica se o usuário enviou um token de autenticação
   if (!request.headers.authorization || !request.headers.authorization.startsWith('Bearer ')) {
     return response.status(401).send('Authorization token missing or invalid.');
