@@ -2,17 +2,11 @@
 <html lang="pt-BR">
 
 <head>
-  <meta http-equiv="Content-Security-Policy" 
-      content="
-        default-src 'self';
-        script-src 'self' 'unsafe-inline' https://*.firebaseio.com https://www.gstatic.com https://apis.google.com https://www.google.com https://securetoken.googleapis.com https://cdn.tailwindcss.com;
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-        font-src https://fonts.gstatic.com;
-        object-src 'self';
-        connect-src 'self' https://*.firebaseio.com https://firestore.googleapis.com https://*.googleapis.com https://*.gstatic.com https://securetoken.googleapis.com;
-        frame-src 'self' https://*.firebaseapp.com https://*.google.com https://*.firebaseio.com;
-      ">
-  <title>Projeção Financeira v21</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- CORREÇÃO FINAL: Política de Segurança que permite a conexão com o Firestore -->
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://*.firebaseio.com https://www.gstatic.com https://apis.google.com https://www.google.com https://securetoken.googleapis.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; object-src 'self'; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com; frame-src 'self' https://*.firebaseapp.com https://financeiro-9d7b1.firebaseapp.com;">
+  <title>Projeção Financeira Sincronizada</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -542,4 +536,3 @@
   </script>
 </body>
 </html>
-
