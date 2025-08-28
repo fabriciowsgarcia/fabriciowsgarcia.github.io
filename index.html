@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- CORREÇÃO FINAL: Política de Segurança de Conteúdo que permite a conexão de autenticação -->
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://*.firebaseio.com https://www.gstatic.com https://apis.google.com https://www.google.com https://securetoken.googleapis.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; object-src 'self'; connect-src 'self' wss://*.firebaseio.com https://www.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com;">
-  <title>Projeção Financeira v10</title>
+  <title>Projeção Financeira v11</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -186,32 +186,43 @@
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app-container');
 
-    // Lida com o resultado do redirecionamento de login quando a página carrega
-    getRedirectResult(auth)
-      .catch((error) => {
-        console.error("Erro durante o redirecionamento do login:", error);
-        const statusMessage = document.getElementById('status-message');
-        statusMessage.textContent = `Erro no login: ${error.message}`;
-      });
+    // CORREÇÃO: Lógica de autenticação reestruturada para evitar condição de corrida
+    function initializeAuth() {
+        // Primeiro, processa o resultado do redirecionamento
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    console.log("Login via redirecionamento bem-sucedido!", result.user);
+                }
+            })
+            .catch((error) => {
+                console.error("Erro durante o redirecionamento do login:", error);
+                const statusMessage = document.getElementById('status-message');
+                statusMessage.textContent = `Erro no login: ${error.message}`;
+            })
+            .finally(() => {
+                // Depois que o redirecionamento for processado, inicia o listener principal
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        authContainer.innerHTML = `
+                            <div class="text-right">
+                                <p class="text-sm text-gray-600">${user.displayName}</p>
+                                <button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button>
+                            </div>
+                        `;
+                        appContainer.classList.remove('disabled');
+                        loadState();
+                    } else {
+                        currentUser = null;
+                        authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition duration-300">Entrar com Google</button>';
+                        appContainer.classList.add('disabled');
+                        resetToDefault(false);
+                    }
+                });
+            });
+    }
 
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            currentUser = user;
-            authContainer.innerHTML = `
-                <div class="text-right">
-                    <p class="text-sm text-gray-600">${user.displayName}</p>
-                    <button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button>
-                </div>
-            `;
-            appContainer.classList.remove('disabled');
-            loadState();
-        } else {
-            currentUser = null;
-            authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition duration-300">Entrar com Google</button>';
-            appContainer.classList.add('disabled');
-            resetToDefault(false); // Reseta a UI sem perguntar
-        }
-    });
 
     // --- FUNÇÕES DE RENDERIZAÇÃO DA UI (sem alterações) ---
     function renderBankInputs() {
@@ -476,7 +487,8 @@
 
     // --- INICIALIZAÇÃO E BINDING DE EVENTOS ---
     document.addEventListener('DOMContentLoaded', () => {
-        // CORREÇÃO: Usa delegação de eventos para os botões de login/logout
+        initializeAuth(); // Inicia a lógica de autenticação
+
         document.getElementById('auth-container').addEventListener('click', (e) => {
             if (e.target && e.target.id === 'login-button') {
                 signInWithRedirect(auth, provider).catch(err => console.error("Erro ao iniciar o login:", err));
