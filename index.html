@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Projeção Financeira Sincronizada</title>
+  <title>Projeção Financeira</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -201,14 +201,11 @@
                     <button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button>
                 </div>
             `;
-            document.getElementById('logout-button').addEventListener('click', () => signOut(auth));
             appContainer.classList.remove('disabled');
             loadState();
         } else {
             currentUser = null;
             authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition duration-300">Entrar com Google</button>';
-            // MUDANÇA: Usa signInWithRedirect em vez de signInWithPopup
-            document.getElementById('login-button').addEventListener('click', () => signInWithRedirect(auth, provider));
             appContainer.classList.add('disabled');
             resetToDefault(false); // Reseta a UI sem perguntar
         }
@@ -477,6 +474,16 @@
 
     // --- INICIALIZAÇÃO E BINDING DE EVENTOS ---
     document.addEventListener('DOMContentLoaded', () => {
+        // CORREÇÃO: Usa delegação de eventos para os botões de login/logout
+        document.getElementById('auth-container').addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'login-button') {
+                signInWithRedirect(auth, provider);
+            }
+            if (e.target && e.target.id === 'logout-button') {
+                signOut(auth);
+            }
+        });
+
         document.getElementById('add-bank-button').addEventListener('click', () => {
             if (!currentUser) return;
             state.banks.push({ id: Date.now(), name: 'Novo Banco', balance: 0, yieldRate: 1.0, limit: null });
