@@ -62,7 +62,7 @@
             </p>
         </div>
         <div id="auth-container" class="mt-4 sm:mt-0">
-            <!-- Botão de Login/Logout e status do usuário aparecerão aqui -->
+            <p class="text-gray-500">Verificando autenticação...</p>
         </div>
     </div>
     
@@ -133,7 +133,7 @@
     </div>
     
     <div class="text-center mt-10 text-sm text-gray-500">
-      <p>Powered by: Fabrício Garcia :)</p>
+      <p>Powered by: Fabrício Garcia</p>
     </div>
 
   </div>
@@ -477,10 +477,10 @@
         // CORREÇÃO: Usa delegação de eventos para os botões de login/logout
         document.getElementById('auth-container').addEventListener('click', (e) => {
             if (e.target && e.target.id === 'login-button') {
-                signInWithRedirect(auth, provider);
+                signInWithRedirect(auth, provider).catch(err => console.error("Erro ao iniciar o login:", err));
             }
             if (e.target && e.target.id === 'logout-button') {
-                signOut(auth);
+                signOut(auth).catch(err => console.error("Erro ao fazer logout:", err));
             }
         });
 
