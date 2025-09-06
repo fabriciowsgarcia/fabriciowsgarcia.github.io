@@ -81,7 +81,7 @@
 
           <div>
             <h2 class="text-xl font-bold mb-3 text-purple-800">Configurações Gerais</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div class="flex flex-col p-4 bg-white rounded-lg border">
                 <label for="total-goal" class="text-sm font-semibold text-gray-600 mb-1">Meta Financeira:</label>
                 <div class="flex items-center">
@@ -99,6 +99,13 @@
               <div class="flex flex-col p-4 bg-white rounded-lg border">
                 <label for="projection-start-date" class="text-sm font-semibold text-gray-600 mb-1">Início da Projeção:</label>
                 <input type="month" id="projection-start-date" class="text-lg font-bold text-gray-700 bg-transparent border-none focus:outline-none w-full">
+              </div>
+              <div class="flex flex-col justify-center p-4 bg-white rounded-lg border">
+                <label for="show-until-goal" class="text-sm font-semibold text-gray-600 mb-2">Limitar projeção à meta?</label>
+                <div class="flex items-center">
+                    <input type="checkbox" id="show-until-goal" class="h-6 w-6 rounded border-gray-300 text-purple-600 shadow-sm focus:ring-purple-500">
+                    <span class="ml-2 text-gray-700">Sim</span>
+                </div>
               </div>
             </div>
           </div>
@@ -180,7 +187,8 @@
             general: {
                 totalGoal: 1000000,
                 defaultContribution: 6000,
-                startDate: '' // Data de início vazia por padrão
+                startDate: '',
+                showUntilGoal: false // Nova propriedade para limitar a tabela
             }
         };
     }
@@ -205,7 +213,7 @@
             authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition duration-300">Entrar com Google</button>';
             appContainer.classList.add('disabled');
             appContainer.classList.remove('loading');
-            resetToDefault(false); // Reseta a UI sem perguntar
+            resetToDefault(false);
         }
     }
 
@@ -229,6 +237,7 @@
         document.getElementById('total-goal').value = state.general.totalGoal;
         document.getElementById('default-contribution').value = state.general.defaultContribution;
         document.getElementById('projection-start-date').value = state.general.startDate || '';
+        document.getElementById('show-until-goal').checked = state.general.showUntilGoal;
     }
 
     function renderTable() {
@@ -237,7 +246,6 @@
         const tbody = document.getElementById('projection-table-body');
         const finalSummary = document.getElementById('final-summary');
 
-        // ... (código de renderização da tabela, sem alterações)
         let headerHtml = '<tr><th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">Mês</th>';
         state.banks.forEach(bank => {
             headerHtml += `<th colspan="4" class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-r border-gray-300">${bank.name}</th>`;
@@ -255,8 +263,14 @@
         thead.innerHTML = headerHtml;
 
         const projection = calculateProjection();
+        
+        // **NOVA LÓGICA PARA LIMITAR A EXIBIÇÃO DA TABELA**
+        let resultsToRender = projection.results;
+        if (state.general.showUntilGoal && projection.goalReached) {
+            resultsToRender = projection.results.slice(0, projection.totalMonthsToGoal);
+        }
 
-        tbody.innerHTML = projection.results.map((month, monthIndex) => {
+        tbody.innerHTML = resultsToRender.map((month, monthIndex) => {
             let rowHtml = `<tr class="${month.isGoalMonth ? 'bg-green-100 font-bold' : ''}">
                 <td class="px-3 py-3 whitespace-nowrap text-sm text-center font-medium text-gray-900 border-r border-gray-300">${month.date}</td>`;
             
@@ -294,7 +308,6 @@
     function calculateProjection() {
         let balances = state.banks.map(b => b.balance);
         
-        // **NOVA LÓGICA DE DATA DE INÍCIO**
         let startDate;
         if (state.general.startDate) {
             const [year, month] = state.general.startDate.split('-');
@@ -309,6 +322,7 @@
         const results = [];
         let goalReached = false;
         let goalInfo = {};
+        let totalMonthsToGoal = totalMonthsToShow;
 
         for (let i = 0; i < totalMonthsToShow; i++) {
             const monthData = { date: currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), banks: [], totalBalance: 0 };
@@ -347,10 +361,10 @@
             if (monthData.totalBalance >= state.general.totalGoal && !goalReached) {
                 goalReached = true;
                 monthData.isGoalMonth = true;
-                const totalMonths = i + 1;
+                totalMonthsToGoal = i + 1;
                 goalInfo = {
-                    years: Math.floor(totalMonths / 12),
-                    months: totalMonths % 12,
+                    years: Math.floor(totalMonthsToGoal / 12),
+                    months: totalMonthsToGoal % 12,
                     finalTotal: monthData.totalBalance
                 };
             }
@@ -358,7 +372,7 @@
             results.push(monthData);
             currentDate.setMonth(currentDate.getMonth() + 1);
         }
-        return { results, goalReached, goalInfo };
+        return { results, goalReached, goalInfo, totalMonthsToGoal };
     }
 
     // --- FUNÇÕES DE DADOS (AGORA COM FIREBASE) ---
@@ -395,14 +409,12 @@
         renderTable();
     }
     
-    // **NOVA FUNÇÃO PARA ATUALIZAR ESTADO ANTES DE SALVAR**
     function updateStateFromInputs() {
-        // Atualiza configurações gerais
         state.general.totalGoal = parseFloat(document.getElementById('total-goal').value) || 1000000;
         state.general.defaultContribution = parseFloat(document.getElementById('default-contribution').value) || 6000;
         state.general.startDate = document.getElementById('projection-start-date').value || '';
+        state.general.showUntilGoal = document.getElementById('show-until-goal').checked;
         
-        // Atualiza os bancos (nomes, saldos, etc.)
         const bankInputs = document.querySelectorAll('#banks-container .bank-input');
         bankInputs.forEach(input => {
             const { index, field } = input.dataset;
@@ -417,7 +429,6 @@
     async function saveState() {
         if (!currentUser) return;
         
-        // Primeiro, garante que o estado `state` está atualizado com os valores da tela
         updateStateFromInputs();
         
         const docRef = doc(db, "users", currentUser.uid);
@@ -524,14 +535,16 @@
 
         document.getElementById('banks-container').addEventListener('click', (e) => {
             if (e.target.classList.contains('remove-bank-button')) {
-                const index = e.target.dataset.index;
-                state.banks.splice(index, 1);
-                renderBankInputs();
-                renderTable();
+                const index = parseInt(e.target.dataset.index, 10);
+                if (!isNaN(index)) {
+                    state.banks.splice(index, 1);
+                    renderBankInputs();
+                    renderTable();
+                }
             }
         });
 
-        ['total-goal', 'default-contribution', 'projection-start-date'].forEach(id => {
+        ['total-goal', 'default-contribution', 'projection-start-date', 'show-until-goal'].forEach(id => {
             document.getElementById(id).addEventListener('change', handleGeneralInputChange);
         });
         
@@ -546,3 +559,4 @@
   </script>
 </body>
 </html>
+
