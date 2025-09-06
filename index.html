@@ -9,12 +9,42 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-    input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type="number"] { -moz-appearance: textfield; }
-    .editable-cell input { background: transparent; border: 1px solid transparent; padding: 0; text-align: right; width: 100%; min-width: 60px; box-sizing: border-box; transition: border-color 0.2s; }
-    .editable-cell input:focus { outline: none; border-color: #a78bfa; background-color: #f3f4f6; }
-    #app-container.disabled { opacity: 0.5; pointer-events: none; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    .editable-cell input {
+      background: transparent;
+      border: 1px solid transparent;
+      padding: 0;
+      text-align: right;
+      width: 100%;
+      min-width: 60px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .editable-cell input:focus {
+      outline: none;
+      border-color: #a78bfa;
+      background-color: #f3f4f6;
+    }
+    
+    #app-container.disabled, #app-container.loading {
+        opacity: 0.5;
+        pointer-events: none;
+    }
   </style>
 </head>
 
@@ -32,7 +62,7 @@
             </p>
         </div>
         <div id="auth-container" class="mt-4 sm:mt-0">
-            <p class="text-gray-500">Verificando autenticação...</p>
+            <!-- Botão de Login/Logout e status do usuário aparecerão aqui -->
         </div>
     </div>
     
@@ -41,14 +71,17 @@
         <div class="space-y-6 bg-purple-50 p-6 rounded-2xl shadow-inner border border-purple-200 mb-8">
           <div>
             <h2 class="text-xl font-bold mb-3 text-purple-800">Bancos e Contas</h2>
-            <div id="banks-container" class="space-y-3"></div>
+            <div id="banks-container" class="space-y-3">
+              <!-- Inputs de bancos gerados via JS -->
+            </div>
             <button id="add-bank-button" class="mt-4 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition duration-300">
               + Adicionar Banco
             </button>
           </div>
+
           <div>
             <h2 class="text-xl font-bold mb-3 text-purple-800">Configurações Gerais</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div class="flex flex-col p-4 bg-white rounded-lg border">
                 <label for="total-goal" class="text-sm font-semibold text-gray-600 mb-1">Meta Financeira:</label>
                 <div class="flex items-center">
@@ -62,6 +95,10 @@
                   <span class="text-lg font-bold text-green-600">R$</span>
                   <input type="number" id="default-contribution" value="6000.00" class="text-lg font-bold text-green-600 text-left bg-transparent border-none focus:outline-none w-full">
                 </div>
+              </div>
+              <div class="flex flex-col p-4 bg-white rounded-lg border">
+                <label for="projection-start-date" class="text-sm font-semibold text-gray-600 mb-1">Início da Projeção:</label>
+                <input type="month" id="projection-start-date" class="text-lg font-bold text-gray-700 bg-transparent border-none focus:outline-none w-full">
               </div>
             </div>
           </div>
@@ -83,8 +120,12 @@
 
         <div class="overflow-x-auto rounded-xl shadow-lg border border-gray-300">
           <table class="min-w-full divide-y divide-gray-300 bg-white">
-            <thead id="projection-table-head" class="bg-purple-100"></thead>
-            <tbody id="projection-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+            <thead id="projection-table-head" class="bg-purple-100">
+              <!-- Cabeçalho da tabela gerado via JS -->
+            </thead>
+            <tbody id="projection-table-body" class="bg-white divide-y divide-gray-200">
+              <!-- Corpo da tabela gerado via JS -->
+            </tbody>
           </table>
         </div>
 
@@ -98,14 +139,17 @@
     <div class="text-center mt-10 text-sm text-gray-500">
       <p>Powered by: Fabrício Garcia</p>
     </div>
+
   </div>
 
-  <!-- FIREBASE SDKs (apenas para autenticação no frontend) -->
+  <!-- FIREBASE SDKs -->
   <script type="module">
+    // Importações do Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // ATUALIZADO: Nova configuração do Firebase
+    // --- CONFIGURAÇÃO DO FIREBASE (COLADO DA SUA CONTA) ---
     const firebaseConfig = {
       apiKey: "AIzaSyCxCoLySMztPI2ZEirFIX8lzTziytdAtLw",
       authDomain: "projecao-financeira-app.firebaseapp.com",
@@ -115,8 +159,10 @@
       appId: "1:761180323629:web:9d6945b83554f3ce9b9da4"
     };
 
+    // Inicializa Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
     // --- ESTADO DA APLICAÇÃO ---
@@ -133,7 +179,8 @@
             ],
             general: {
                 totalGoal: 1000000,
-                defaultContribution: 6000
+                defaultContribution: 6000,
+                startDate: '' // Data de início vazia por padrão
             }
         };
     }
@@ -142,7 +189,7 @@
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app-container');
 
-    onAuthStateChanged(auth, (user) => {
+    function updateAuthUI(user) {
         if (user) {
             currentUser = user;
             authContainer.innerHTML = `
@@ -151,17 +198,18 @@
                     <button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button>
                 </div>
             `;
-            appContainer.classList.remove('disabled');
+            appContainer.classList.remove('loading', 'disabled');
             loadState();
         } else {
             currentUser = null;
             authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition duration-300">Entrar com Google</button>';
             appContainer.classList.add('disabled');
-            resetToDefault(false);
+            appContainer.classList.remove('loading');
+            resetToDefault(false); // Reseta a UI sem perguntar
         }
-    });
+    }
 
-    // --- FUNÇÕES DE RENDERIZAÇÃO DA UI (sem alterações) ---
+    // --- FUNÇÕES DE RENDERIZAÇÃO DA UI ---
     function renderBankInputs() {
         const container = document.getElementById('banks-container');
         container.innerHTML = state.banks.map((bank, index) => `
@@ -180,13 +228,16 @@
     function renderGeneralInputs() {
         document.getElementById('total-goal').value = state.general.totalGoal;
         document.getElementById('default-contribution').value = state.general.defaultContribution;
+        document.getElementById('projection-start-date').value = state.general.startDate || '';
     }
 
     function renderTable() {
-        if (!currentUser) return;
+        if (!currentUser) return; 
         const thead = document.getElementById('projection-table-head');
         const tbody = document.getElementById('projection-table-body');
         const finalSummary = document.getElementById('final-summary');
+
+        // ... (código de renderização da tabela, sem alterações)
         let headerHtml = '<tr><th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">Mês</th>';
         state.banks.forEach(bank => {
             headerHtml += `<th colspan="4" class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-r border-gray-300">${bank.name}</th>`;
@@ -202,10 +253,13 @@
         });
         headerHtml += '</tr>';
         thead.innerHTML = headerHtml;
+
         const projection = calculateProjection();
+
         tbody.innerHTML = projection.results.map((month, monthIndex) => {
             let rowHtml = `<tr class="${month.isGoalMonth ? 'bg-green-100 font-bold' : ''}">
                 <td class="px-3 py-3 whitespace-nowrap text-sm text-center font-medium text-gray-900 border-r border-gray-300">${month.date}</td>`;
+            
             month.banks.forEach((bankData, bankIndex) => {
                 rowHtml += `
                     <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 border-r border-gray-300">${formatCurrency(bankData.startBalance)}</td>
@@ -218,9 +272,11 @@
                     <td class="px-3 py-3 whitespace-nowrap text-sm text-right font-bold text-gray-900 border-r border-gray-300">${formatCurrency(bankData.endBalance)}</td>
                 `;
             });
+
             rowHtml += `<td class="px-3 py-3 whitespace-nowrap text-sm text-right font-extrabold text-purple-800">${formatCurrency(month.totalBalance)}</td></tr>`;
             return rowHtml;
         }).join('');
+
         if (projection.goalReached) {
             const { years, months, finalTotal } = projection.goalInfo;
             finalSummary.innerHTML = `
@@ -234,21 +290,36 @@
         }
     }
 
-    // --- LÓGICA DE CÁLCULO (sem alterações) ---
+    // --- LÓGICA DE CÁLCULO ---
     function calculateProjection() {
         let balances = state.banks.map(b => b.balance);
-        let currentDate = new Date();
-        currentDate.setDate(1);
+        
+        // **NOVA LÓGICA DE DATA DE INÍCIO**
+        let startDate;
+        if (state.general.startDate) {
+            const [year, month] = state.general.startDate.split('-');
+            startDate = new Date(year, month - 1, 1);
+        } else {
+            startDate = new Date();
+            startDate.setDate(1);
+        }
+        
+        let currentDate = new Date(startDate.getTime());
+        
         const results = [];
         let goalReached = false;
         let goalInfo = {};
+
         for (let i = 0; i < totalMonthsToShow; i++) {
             const monthData = { date: currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), banks: [], totalBalance: 0 };
             const monthInputs = tableInputData[i] || {};
+
             const contributions = monthInputs.contributions ?? [];
             const yieldRates = monthInputs.yieldRates ?? [];
+
             let defaultContribution = state.general.defaultContribution;
             let contributionTargetIndex = -1;
+
             for(let j=0; j < state.banks.length; j++) {
                 const bankLimit = state.banks[j].limit;
                 if(bankLimit === null || balances[j] < bankLimit) {
@@ -259,16 +330,20 @@
             if(contributionTargetIndex === -1 && state.banks.length > 0) {
                 contributionTargetIndex = state.banks.length - 1;
             }
+
             state.banks.forEach((bank, j) => {
                 const startBalance = balances[j];
                 const contribution = contributions[j] ?? (j === contributionTargetIndex ? defaultContribution : 0);
                 const yieldRate = yieldRates[j] ?? bank.yieldRate;
                 const yieldAmount = startBalance * (yieldRate / 100);
                 const endBalance = startBalance + contribution + yieldAmount;
+                
                 monthData.banks.push({ startBalance, contribution, yieldRate, yieldAmount, endBalance });
                 balances[j] = endBalance;
             });
+
             monthData.totalBalance = balances.reduce((sum, b) => sum + b, 0);
+            
             if (monthData.totalBalance >= state.general.totalGoal && !goalReached) {
                 goalReached = true;
                 monthData.isGoalMonth = true;
@@ -279,41 +354,38 @@
                     finalTotal: monthData.totalBalance
                 };
             }
+            
             results.push(monthData);
             currentDate.setMonth(currentDate.getMonth() + 1);
         }
         return { results, goalReached, goalInfo };
     }
 
-    // --- FUNÇÕES DE DADOS (AGORA COM BACKEND) ---
-    async function getAuthToken() {
-        if (!auth.currentUser) return null;
-        return await auth.currentUser.getIdToken(true);
-    }
-
+    // --- FUNÇÕES DE DADOS (AGORA COM FIREBASE) ---
     async function loadState() {
         if (!currentUser) return;
+        const docRef = doc(db, "users", currentUser.uid);
         const statusMessage = document.getElementById('status-message');
         statusMessage.textContent = 'Carregando dados da nuvem...';
 
         try {
-            const token = await getAuthToken();
-            const response = await fetch('/api/data', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) throw new Error('Falha ao carregar os dados.');
-            
-            const data = await response.json();
-            state = {
-                banks: data.banks || getDefaultState().banks,
-                general: data.general || getDefaultState().general
-            };
-            tableInputData = data.monthlyEdits || [];
-            statusMessage.textContent = 'Dados carregados com sucesso!';
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                state = {
+                    banks: data.banks || getDefaultState().banks,
+                    general: data.general || getDefaultState().general
+                };
+                tableInputData = data.monthlyEdits || [];
+                statusMessage.textContent = 'Dados carregados com sucesso!';
+            } else {
+                state = getDefaultState();
+                tableInputData = [];
+                statusMessage.textContent = 'Nenhum dado salvo encontrado. Começando uma nova projeção.';
+            }
         } catch (error) {
-            console.error("Erro ao carregar dados:", error);
-            statusMessage.textContent = 'Erro ao carregar dados. Usando valores padrão.';
+            console.error("Erro ao carregar dados do Firestore:", error);
+            statusMessage.textContent = 'Erro ao carregar dados.';
             state = getDefaultState();
             tableInputData = [];
         }
@@ -322,28 +394,35 @@
         renderGeneralInputs();
         renderTable();
     }
-
+    
+    // **NOVA FUNÇÃO PARA ATUALIZAR ESTADO ANTES DE SALVAR**
     function updateStateFromInputs() {
-        if (!state.general) state.general = {};
-        state.general.totalGoal = parseFloat(document.getElementById('total-goal').value) || 0;
-        state.general.defaultContribution = parseFloat(document.getElementById('default-contribution').value) || 0;
-        document.querySelectorAll('#banks-container .bank-input[data-field]').forEach(input => {
+        // Atualiza configurações gerais
+        state.general.totalGoal = parseFloat(document.getElementById('total-goal').value) || 1000000;
+        state.general.defaultContribution = parseFloat(document.getElementById('default-contribution').value) || 6000;
+        state.general.startDate = document.getElementById('projection-start-date').value || '';
+        
+        // Atualiza os bancos (nomes, saldos, etc.)
+        const bankInputs = document.querySelectorAll('#banks-container .bank-input');
+        bankInputs.forEach(input => {
             const { index, field } = input.dataset;
-            const idx = parseInt(index);
-            if (state.banks && state.banks[idx]) {
-                let value = input.type === 'number' ? parseFloat(input.value) : input.value;
-                if (field === 'limit' && (isNaN(value) || input.value === '')) {
-                    value = null;
-                }
-                state.banks[idx][field] = value;
+            let value = input.type === 'number' ? parseFloat(input.value) : input.value;
+            if(field === 'limit' && (isNaN(value) || value === 0)) value = null;
+            if (state.banks[index]) {
+                state.banks[index][field] = value;
             }
         });
     }
 
     async function saveState() {
         if (!currentUser) return;
+        
+        // Primeiro, garante que o estado `state` está atualizado com os valores da tela
         updateStateFromInputs();
+        
+        const docRef = doc(db, "users", currentUser.uid);
         const statusMessage = document.getElementById('status-message');
+        
         const dataToSave = {
             banks: state.banks,
             general: state.general,
@@ -352,20 +431,10 @@
 
         try {
             statusMessage.textContent = 'Salvando na nuvem...';
-            const token = await getAuthToken();
-            const response = await fetch('/api/data', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(dataToSave)
-            });
-
-            if (!response.ok) throw new Error('Falha ao salvar os dados.');
+            await setDoc(docRef, dataToSave);
             statusMessage.textContent = 'Valores salvos com sucesso na nuvem!';
         } catch (error) {
-            console.error("Erro ao salvar:", error);
+            console.error("Erro ao salvar no Firestore:", error);
             statusMessage.textContent = 'Erro ao salvar os dados.';
         }
     }
@@ -384,57 +453,61 @@
         }
     }
 
-    // --- HELPERS E EVENT HANDLERS (sem alterações) ---
+    // --- HELPERS E EVENT HANDLERS ---
     const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 
     function handleBankInputChange(e) {
-        const { index, field } = e.target.dataset;
-        let value = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
-        if (field === 'limit' && isNaN(value)) value = null;
-        if (!isNaN(value) || field === 'name') {
-            state.banks[index][field] = value;
-            renderTable();
-        }
+        updateStateFromInputs();
+        renderTable();
     }
 
     function handleGeneralInputChange(e) {
-        const field = e.target.id === 'total-goal' ? 'totalGoal' : 'defaultContribution';
-        const value = parseFloat(e.target.value);
-        if (!isNaN(value)) {
-            state.general[field] = value;
-            renderTable();
-        }
+        updateStateFromInputs();
+        renderTable();
     }
 
     function handleTableInputChange(e) {
         const { monthIndex, bankIndex, field } = e.target.dataset;
         const value = parseFloat(e.target.value);
+
         if (isNaN(value)) return;
         const monthIdx = parseInt(monthIndex);
         const bankIdx = parseInt(bankIndex);
+
         while (tableInputData.length <= monthIdx) {
             tableInputData.push({});
         }
+        
         const fieldMap = {
             contribution: 'contributions',
             yieldRate: 'yieldRates'
         };
         const arrayField = fieldMap[field];
+
         if (!tableInputData[monthIdx][arrayField]) {
             tableInputData[monthIdx][arrayField] = [];
         }
         tableInputData[monthIdx][arrayField][bankIdx] = value;
+
         renderTable();
     }
 
     // --- INICIALIZAÇÃO E BINDING DE EVENTOS ---
     document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('auth-container').addEventListener('click', (e) => {
+        authContainer.innerHTML = '<p class="text-sm text-gray-500">Verificando autenticação...</p>';
+        appContainer.classList.add('loading');
+        
+        setPersistence(auth, browserLocalPersistence)
+          .then(() => {
+            onAuthStateChanged(auth, updateAuthUI);
+          });
+        
+        authContainer.addEventListener('click', (e) => {
             if (e.target && e.target.id === 'login-button') {
-                signInWithPopup(auth, provider).catch(err => console.error("Erro ao iniciar o login com popup:", err));
+                signInWithPopup(auth, provider).catch(err => console.error("Erro no login popup:", err));
             }
             if (e.target && e.target.id === 'logout-button') {
-                signOut(auth).catch(err => console.error("Erro ao fazer logout:", err));
+                signOut(auth).catch(err => console.error("Erro no logout:", err));
             }
         });
 
@@ -451,17 +524,16 @@
 
         document.getElementById('banks-container').addEventListener('click', (e) => {
             if (e.target.classList.contains('remove-bank-button')) {
-                const index = parseInt(e.target.dataset.index);
-                if (!isNaN(index) && state.banks[index]) {
-                    state.banks.splice(index, 1);
-                    renderBankInputs();
-                    renderTable();
-                }
+                const index = e.target.dataset.index;
+                state.banks.splice(index, 1);
+                renderBankInputs();
+                renderTable();
             }
         });
 
-        document.getElementById('total-goal').addEventListener('change', handleGeneralInputChange);
-        document.getElementById('default-contribution').addEventListener('change', handleGeneralInputChange);
+        ['total-goal', 'default-contribution', 'projection-start-date'].forEach(id => {
+            document.getElementById(id).addEventListener('change', handleGeneralInputChange);
+        });
         
         document.getElementById('projection-table-body').addEventListener('change', (e) => {
             if (e.target.classList.contains('table-input')) handleTableInputChange(e);
@@ -469,7 +541,7 @@
 
         document.getElementById('recalculate-button').addEventListener('click', renderTable);
         document.getElementById('save-button').addEventListener('click', saveState);
-        document.getElementById('reset-button').addEventListener('click', resetToDefault);
+        document.getElementById('reset-button').addEventListener('click', () => resetToDefault(true));
     });
   </script>
 </body>
