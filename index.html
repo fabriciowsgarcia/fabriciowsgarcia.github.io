@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
-  <title>Projeção Financeira v7</title>
+  <title>Projeção Financeira Sincronizada</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js para os gráficos -->
@@ -40,7 +40,7 @@
   </style>
 </head>
 
-<body class="min-h-screen p-4 sm:p-8 bg-gray-50">
+<body class="min-h-screen p-4 sm:p-8">
   <div class="max-w-7xl mx-auto bg-white p-6 sm:p-10 rounded-3xl shadow-xl border border-gray-200">
     
     <!-- CABEÇALHO E LOGIN -->
@@ -307,8 +307,8 @@
             const { years, months, finalTotal } = projection.goalInfo;
             finalSummary.innerHTML = `Meta atingida em <span class="text-green-700">${years} anos e ${months} meses</span>.<br>Saldo total: <span class="text-green-700">${formatCurrency(finalTotal)}</span>`;
             summaryDetails.innerHTML = `
-                <p>Total Aportado: <span class="font-semibold">${formatCurrency(projection.totalContributed)}</span></p>
-                <p>Juros Ganhos: <span class="font-semibold">${formatCurrency(projection.totalInterest)}</span></p>
+                <p>Total Aportado: <span class="font-semibold">${formatCurrency(projection.goalInfo.contributedAtGoal)}</span></p>
+                <p>Juros Ganhos: <span class="font-semibold">${formatCurrency(projection.goalInfo.interestAtGoal)}</span></p>
             `;
         } else {
             const finalTotal = projection.results.length > 0 ? projection.results.slice(-1)[0].totalBalance : 0;
@@ -319,14 +319,23 @@
     
     function renderEvolutionChart(projection) {
         const ctx = document.getElementById('evolution-chart').getContext('2d');
+        
+        let resultsToRender = projection.results;
+        if (state.general.showUntilGoal && projection.goalReached) {
+            resultsToRender = projection.results.slice(0, projection.totalMonthsToGoal);
+        }
+
+        const labels = resultsToRender.map(r => r.date);
+        const data = resultsToRender.map(r => r.totalBalance);
+
         if (evolutionChartInstance) evolutionChartInstance.destroy();
         evolutionChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: projection.results.map(r => r.date),
+                labels: labels,
                 datasets: [{
                     label: 'Património Total',
-                    data: projection.results.map(r => r.totalBalance),
+                    data: data,
                     borderColor: '#8b5cf6',
                     backgroundColor: 'rgba(139, 92, 246, 0.1)',
                     fill: true,
@@ -341,13 +350,13 @@
         const ctx = document.getElementById('summary-pie-chart').getContext('2d');
         if (summaryPieChartInstance) summaryPieChartInstance.destroy();
 
-        if (projection.goalReached && projection.totalContributed > 0) {
+        if (projection.goalReached && projection.goalInfo.contributedAtGoal > 0) {
             summaryPieChartInstance = new Chart(ctx, {
                 type: 'pie',
                 data: {
                     labels: ['Total Aportado', 'Juros Ganhos'],
                     datasets: [{
-                        data: [projection.totalContributed, projection.totalInterest],
+                        data: [projection.goalInfo.contributedAtGoal, projection.goalInfo.interestAtGoal],
                         backgroundColor: ['#34d399', '#a78bfa'],
                     }]
                 }
@@ -437,7 +446,13 @@
                 goalReached = true;
                 monthResult.isGoalMonth = true;
                 totalMonthsToGoal = i + 1;
-                goalInfo = { years: Math.floor(totalMonthsToGoal / 12), months: totalMonthsToGoal % 12, finalTotal: totalBalance };
+                goalInfo = { 
+                    years: Math.floor(totalMonthsToGoal / 12), 
+                    months: totalMonthsToGoal % 12, 
+                    finalTotal: totalBalance,
+                    contributedAtGoal: totalContributed,
+                    interestAtGoal: totalInterest
+                };
             }
             results.push(monthResult);
             currentDate.setMonth(currentDate.getMonth() + 1);
