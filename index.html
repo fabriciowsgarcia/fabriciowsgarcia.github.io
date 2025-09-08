@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
-  <title>Projeção Financeira v5</title>
+  <title>Projeção Financeira v7</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js para os gráficos -->
@@ -164,6 +164,7 @@
     const provider = new GoogleAuthProvider();
 
     let state = {};
+    let tableInputData = [];
     let currentUser = null;
     let evolutionChartInstance = null;
     let summaryPieChartInstance = null;
@@ -281,15 +282,19 @@
             resultsToRender = projection.results.slice(0, projection.totalMonthsToGoal);
         }
 
-        tbody.innerHTML = resultsToRender.map(month => {
+        tbody.innerHTML = resultsToRender.map((month, monthIndex) => {
             let rowHtml = `<tr class="${month.isGoalMonth ? 'bg-green-100' : ''}">
                 <td class="px-3 py-3 text-sm text-center border-r">${month.date}</td>`;
             
-            month.banks.forEach(bankData => {
+            month.banks.forEach((bankData, bankIndex) => {
                 rowHtml += `
                     <td class="px-3 py-3 text-sm text-right border-r">${formatCurrency(bankData.startBalance)}</td>
-                    <td class="px-3 py-3 text-sm text-right border-r text-green-600">${formatCurrency(bankData.contribution)}</td>
-                    <td class="px-3 py-3 text-sm text-right border-r text-purple-600">${bankData.yieldRate.toFixed(2)}%</td>
+                    <td class="px-3 py-3 text-sm text-right text-green-600 border-r editable-cell">
+                        <input type="number" step="100" value="${bankData.contribution.toFixed(0)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="contribution" class="table-input">
+                    </td>
+                    <td class="px-3 py-3 text-sm text-right text-purple-600 border-r editable-cell">
+                         <input type="number" step="0.01" value="${bankData.yieldRate.toFixed(2)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="yieldRate" class="table-input">
+                    </td>
                     <td class="px-3 py-3 text-sm text-right font-bold border-r">${formatCurrency(bankData.endBalance)}</td>
                 `;
             });
@@ -381,36 +386,48 @@
                 }
             });
 
-            let monthlyContribution = currentDefaultContribution;
+            const monthInputs = tableInputData[i] || {};
+            const contributionOverrides = monthInputs.contributions ?? [];
+            const yieldRateOverrides = monthInputs.yieldRates ?? [];
 
-            let contributionTargetIndex = -1;
-            for(let j=0; j < state.banks.length; j++) {
-                if(state.banks[j].limit === null || balances[j] < state.banks[j].limit) {
-                    contributionTargetIndex = j;
-                    break;
-                }
-            }
-            if(contributionTargetIndex === -1 && state.banks.length > 0) {
-                contributionTargetIndex = state.banks.length - 1;
-            }
-
-            let monthInterest = 0;
+            let monthlyContributionTotal = 0;
             const bankDataForMonth = [];
+            
             (state.banks || []).forEach((bank, j) => {
                 const startBalance = balances[j];
-                const contribution = (j === contributionTargetIndex) ? monthlyContribution : 0;
-                const yieldRate = bank.yieldRate;
+                let contribution = contributionOverrides[j];
+
+                if (contribution === undefined) {
+                     contribution = 0;
+                     if(currentDefaultContribution > 0) {
+                        let contributionTargetIndex = -1;
+                        for(let k=0; k < state.banks.length; k++) {
+                            if(state.banks[k].limit === null || balances[k] < state.banks[k].limit) {
+                                contributionTargetIndex = k;
+                                break;
+                            }
+                        }
+                        if(contributionTargetIndex === -1 && state.banks.length > 0) {
+                            contributionTargetIndex = state.banks.length - 1;
+                        }
+                        if (j === contributionTargetIndex) {
+                           contribution = currentDefaultContribution;
+                        }
+                     }
+                }
+                
+                monthlyContributionTotal += contribution;
+                
+                const yieldRate = yieldRateOverrides[j] ?? bank.yieldRate;
                 const yieldAmount = (startBalance + contribution) * (yieldRate / 100);
                 const endBalance = startBalance + contribution + yieldAmount;
                 
-                monthInterest += yieldAmount;
                 balances[j] = endBalance;
                 bankDataForMonth.push({ startBalance, contribution, yieldRate, yieldAmount, endBalance });
             });
-            if(contributionTargetIndex !== -1) {
-                totalContributed += monthlyContribution;
-            }
-            totalInterest += monthInterest;
+
+            totalContributed += monthlyContributionTotal;
+            totalInterest += bankDataForMonth.reduce((sum, b) => sum + b.yieldAmount, 0);
             
             const totalBalance = balances.reduce((sum, b) => sum + b, 0);
             
@@ -434,13 +451,17 @@
         try {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
-                state = { ...getDefaultState(), ...docSnap.data(), general: {...getDefaultState().general, ...docSnap.data().general} };
+                const data = docSnap.data();
+                state = { ...getDefaultState(), ...data, general: {...getDefaultState().general, ...data.general} };
+                tableInputData = data.monthlyEdits || [];
             } else {
                 state = getDefaultState();
+                tableInputData = [];
             }
         } catch (error) {
             console.error("Erro ao carregar dados:", error);
             state = getDefaultState();
+            tableInputData = [];
         }
         renderApp();
     }
@@ -482,9 +503,10 @@
         updateStateFromInputs();
         const docRef = doc(db, "users", currentUser.uid);
         const statusMessage = document.getElementById('status-message');
+        const dataToSave = { ...state, monthlyEdits: tableInputData };
         try {
             statusMessage.textContent = 'Salvando na nuvem...';
-            await setDoc(docRef, state);
+            await setDoc(docRef, dataToSave);
             statusMessage.textContent = 'Valores salvos com sucesso!';
         } catch (error) {
             console.error("Erro ao salvar:", error);
@@ -495,6 +517,7 @@
     function resetToDefault(confirmReset = true) {
         if (confirmReset && !confirm('Tem certeza que deseja resetar?')) return;
         state = getDefaultState();
+        tableInputData = [];
         renderApp();
         if (currentUser) saveState();
     }
@@ -519,6 +542,32 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }
+
+    function handleTableInputChange(e) {
+        const { monthIndex, bankIndex, field } = e.target.dataset;
+        const value = parseFloat(e.target.value);
+
+        if (isNaN(value)) return;
+        const monthIdx = parseInt(monthIndex, 10);
+        const bankIdx = parseInt(bankIndex, 10);
+
+        while (tableInputData.length <= monthIdx) {
+            tableInputData.push({});
+        }
+        
+        const fieldMap = {
+            contribution: 'contributions',
+            yieldRate: 'yieldRates'
+        };
+        const arrayField = fieldMap[field];
+
+        if (!tableInputData[monthIdx][arrayField]) {
+            tableInputData[monthIdx][arrayField] = [];
+        }
+        tableInputData[monthIdx][arrayField][bankIdx] = value;
+
+        renderTableAndCharts();
     }
 
     const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
@@ -603,6 +652,12 @@
             });
         });
         
+        document.getElementById('projection-table-body').addEventListener('change', e => {
+            if (e.target.classList.contains('table-input')) {
+                handleTableInputChange(e);
+            }
+        });
+        
         document.getElementById('recalculate-button').addEventListener('click', () => { updateStateFromInputs(); renderTableAndCharts(); });
         document.getElementById('save-button').addEventListener('click', saveState);
         document.getElementById('reset-button').addEventListener('click', () => resetToDefault(true));
@@ -611,5 +666,4 @@
   </script>
 </body>
 </html>
-
 
