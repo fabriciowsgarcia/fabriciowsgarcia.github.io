@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
-  <title>Projeção Financeira Sincronizada</title>
+  <title>Projeção Financeira V4</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js para os gráficos -->
@@ -19,6 +19,24 @@
     .editable-cell input { background: transparent; border: 1px solid transparent; padding: 0; text-align: right; width: 100%; min-width: 60px; box-sizing: border-box; transition: border-color 0.2s; }
     .editable-cell input:focus { outline: none; border-color: #a78bfa; }
     #app-container.disabled, #app-container.loading { opacity: 0.5; pointer-events: none; }
+    /* Estilos para o Modo Escuro */
+    .dark body { background-color: #111827; color: #d1d5db; }
+    .dark .bg-white { background-color: #1f2937; border-color: #4b5563; }
+    .dark .bg-gray-50 { background-color: #374151; }
+    .dark .bg-purple-50 { background-color: #3730a3; border-color: #4338ca; }
+    .dark .text-gray-800, .dark .text-gray-700, .dark .text-gray-900 { color: #f9fafb; }
+    .dark .text-gray-500, .dark .text-gray-600 { color: #9ca3af; }
+    .dark .border, .dark .divide-y, .dark .border-b, .dark .border-r { border-color: #4b5563 !important; }
+    .dark input, .dark select { background-color: #374151; color: #f9fafb; border-color: #4b5563; }
+    .dark .editable-cell input:focus { background-color: #4b5563; }
+    .dark .bg-purple-100 { background-color: #312e81; }
+    .dark .bg-green-100 { background-color: #047857; }
+    .dark .bg-green-50 { background-color: #064e3b; border-color: #059669; }
+    .dark .text-purple-800 { color: #a78bfa; }
+    .dark .text-blue-600 { color: #60a5fa; }
+    .dark .text-green-600 { color: #34d399; }
+    .dark .text-green-700 { color: #6ee7b7; }
+    .dark .text-orange-700 { color: #fb923c; }
   </style>
 </head>
 
@@ -31,7 +49,10 @@
             <h1 class="text-3xl sm:text-4xl font-extrabold text-center sm:text-left text-purple-800">Projeção Financeira</h1>
             <p class="text-center sm:text-left text-gray-500">Sincronizada na nuvem com Firebase.</p>
         </div>
-        <div id="auth-container" class="mt-4 sm:mt-0"></div>
+        <div class="flex items-center gap-4 mt-4 sm:mt-0">
+            <button id="dark-mode-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800">🌙</button>
+            <div id="auth-container"></div>
+        </div>
     </div>
     
     <div id="app-container" class="disabled">
@@ -85,6 +106,7 @@
         <div class="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
           <button id="recalculate-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-purple-600 text-white font-bold rounded-full shadow-lg hover:bg-purple-700 transition duration-300 text-lg">Recalcular</button>
           <button id="save-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-gray-500 text-white font-bold rounded-full shadow-lg hover:bg-gray-600 transition duration-300 text-lg">Salvar na Nuvem</button>
+          <button id="export-csv-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-green-600 text-white font-bold rounded-full shadow-lg hover:bg-green-700 transition duration-300 text-lg">Exportar CSV</button>
           <button id="reset-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-red-500 text-white font-bold rounded-full shadow-lg hover:bg-red-600 transition duration-300 text-lg">Resetar</button>
         </div>
 
@@ -144,7 +166,8 @@
                 totalGoal: 1000000,
                 defaultContribution: 6000,
                 startDate: new Date().toISOString().slice(0, 7),
-                showUntilGoal: false
+                showUntilGoal: false,
+                darkMode: false
             }
         };
     }
@@ -153,6 +176,7 @@
     const appContainer = document.getElementById('app-container');
 
     function renderApp() {
+        updateTheme();
         renderBankInputs();
         renderGeneralInputs();
         renderTableAndCharts();
@@ -166,6 +190,16 @@
         renderSummaryChart(projection);
     }
     
+    function updateTheme() {
+        if (state.general.darkMode) {
+            document.documentElement.classList.add('dark');
+            document.getElementById('dark-mode-toggle').textContent = '☀️';
+        } else {
+            document.documentElement.classList.remove('dark');
+            document.getElementById('dark-mode-toggle').textContent = '🌙';
+        }
+    }
+
     function renderBankInputs() {
         const container = document.getElementById('banks-container');
         container.innerHTML = (state.banks || []).map((bank) => `
@@ -187,9 +221,26 @@
     }
     
     function renderTable(projection) {
+        const thead = document.getElementById('projection-table-head');
         const tbody = document.getElementById('projection-table-body');
         const finalSummary = document.getElementById('final-summary');
         const summaryDetails = document.getElementById('summary-details');
+
+        let headerHtml = '<tr><th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider border-r">Mês</th>';
+        (state.banks || []).forEach(bank => {
+            headerHtml += `<th colspan="4" class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-b border-r">${bank.name}</th>`;
+        });
+        headerHtml += '<th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider">Saldo Total</th></tr><tr>';
+        (state.banks || []).forEach(() => {
+            headerHtml += `
+                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Saldo Início</th>
+                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Aporte</th>
+                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Rendimento (%)</th>
+                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Saldo Final</th>
+            `;
+        });
+        headerHtml += '</tr>';
+        thead.innerHTML = headerHtml;
 
         let resultsToRender = projection.results;
         if (state.general.showUntilGoal && projection.goalReached) {
@@ -345,6 +396,7 @@
         state.general.defaultContribution = parseFloat(document.getElementById('default-contribution').value) || 0;
         state.general.startDate = document.getElementById('projection-start-date').value || '';
         state.general.showUntilGoal = document.getElementById('show-until-goal').checked;
+        state.general.darkMode = document.documentElement.classList.contains('dark');
         
         const newBanks = [];
         document.querySelectorAll('#banks-container .bank-entry').forEach(el => {
@@ -381,34 +433,67 @@
         if (currentUser) saveState();
     }
     
+    function exportToCSV() {
+        const projection = calculateProjection();
+        let csvContent = "data:text/csv;charset=utf-8,";
+        const headers = ["Mês", ...state.banks.flatMap(b => [`${b.name} Saldo Início`, `${b.name} Aporte`, `${b.name} Rendimento (%)`, `${b.name} Saldo Final`]), "Saldo Total"];
+        csvContent += headers.join(",") + "\r\n";
+        projection.results.forEach(row => {
+            const rowData = [
+                `"${row.date}"`,
+                ...row.banks.flatMap(b => [b.startBalance.toFixed(2), b.contribution.toFixed(2), b.yieldRate.toFixed(2), b.endBalance.toFixed(2)]),
+                row.totalBalance.toFixed(2)
+            ];
+            csvContent += rowData.join(",") + "\r\n";
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "projecao_financeira.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
     const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 
     document.addEventListener('DOMContentLoaded', () => {
         authContainer.innerHTML = '<p class="text-sm">Verificando...</p>';
         appContainer.classList.add('loading');
         
-        onAuthStateChanged(auth, user => {
-            if (user) {
-                currentUser = user;
-                authContainer.innerHTML = `<div class="text-right"><p class="text-sm">${user.displayName}</p><button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button></div>`;
-                appContainer.classList.remove('loading', 'disabled');
-                loadState();
-            } else {
-                currentUser = null;
-                authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow">Entrar com Google</button>';
-                appContainer.classList.add('disabled');
-                appContainer.classList.remove('loading');
-                state = getDefaultState();
-                renderApp();
-            }
-        });
+        setPersistence(auth, browserLocalPersistence)
+          .then(() => {
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    currentUser = user;
+                    authContainer.innerHTML = `<div class="text-right"><p class="text-sm">${user.displayName}</p><button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button></div>`;
+                    appContainer.classList.remove('loading', 'disabled');
+                    loadState();
+                } else {
+                    currentUser = null;
+                    authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow">Entrar com Google</button>';
+                    appContainer.classList.add('disabled');
+                    appContainer.classList.remove('loading');
+                    state = getDefaultState();
+                    renderApp();
+                }
+            });
+          });
         
         authContainer.addEventListener('click', e => {
             if (e.target.id === 'login-button') signInWithPopup(auth, provider).catch(err => console.error("Erro no login:", err));
             if (e.target.id === 'logout-button') signOut(auth).catch(err => console.error("Erro no logout:", err));
         });
+        
+        document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+            state.general.darkMode = !state.general.darkMode;
+            updateTheme();
+            renderTableAndCharts(); // Recria os gráficos com as cores do novo tema
+        });
 
         document.getElementById('add-bank-button').addEventListener('click', () => {
+            if (!currentUser) return;
+            if(!state.banks) state.banks = [];
             state.banks.push({ id: Date.now(), name: 'Novo Banco', balance: 0, yieldRate: 1.0, limit: null });
             renderApp();
         });
@@ -431,6 +516,7 @@
         document.getElementById('recalculate-button').addEventListener('click', () => { updateStateFromInputs(); renderTableAndCharts(); });
         document.getElementById('save-button').addEventListener('click', saveState);
         document.getElementById('reset-button').addEventListener('click', () => resetToDefault(true));
+        document.getElementById('export-csv-button').addEventListener('click', exportToCSV);
     });
   </script>
 </body>
