@@ -4,9 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- CORREÇÃO: Política de Segurança de Conteúdo para permitir Firebase, Google Fonts e Estilos -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com; object-src 'none'; base-uri 'self';">
-  <title>Projeção Financeira v3</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
+  <title>Projeção Financeira VGrafico</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js para os gráficos -->
@@ -20,28 +19,10 @@
     .editable-cell input { background: transparent; border: 1px solid transparent; padding: 0; text-align: right; width: 100%; min-width: 60px; box-sizing: border-box; transition: border-color 0.2s; }
     .editable-cell input:focus { outline: none; border-color: #a78bfa; }
     #app-container.disabled, #app-container.loading { opacity: 0.5; pointer-events: none; }
-    /* Estilos para o Modo Escuro */
-    .dark body { background-color: #111827; color: #d1d5db; }
-    .dark .bg-white { background-color: #1f2937; border-color: #4b5563; }
-    .dark .bg-gray-50 { background-color: #374151; }
-    .dark .bg-purple-50 { background-color: #3730a3; border-color: #4338ca; }
-    .dark .text-gray-800, .dark .text-gray-700, .dark .text-gray-900 { color: #f9fafb; }
-    .dark .text-gray-500, .dark .text-gray-600 { color: #9ca3af; }
-    .dark .border, .dark .divide-y, .dark .border-b, .dark .border-r { border-color: #4b5563 !important; }
-    .dark input, .dark select { background-color: #374151; color: #f9fafb; border-color: #4b5563; }
-    .dark .editable-cell input:focus { background-color: #4b5563; }
-    .dark .bg-purple-100 { background-color: #312e81; }
-    .dark .bg-green-100 { background-color: #047857; }
-    .dark .bg-green-50 { background-color: #064e3b; border-color: #059669; }
-    .dark .text-purple-800 { color: #a78bfa; }
-    .dark .text-blue-600 { color: #60a5fa; }
-    .dark .text-green-600 { color: #34d399; }
-    .dark .text-green-700 { color: #6ee7b7; }
-    .dark .text-orange-700 { color: #fb923c; }
   </style>
 </head>
 
-<body class="min-h-screen p-4 sm:p-8">
+<body class="min-h-screen p-4 sm:p-8 bg-gray-50">
   <div class="max-w-7xl mx-auto bg-white p-6 sm:p-10 rounded-3xl shadow-xl border border-gray-200">
     
     <!-- CABEÇALHO E LOGIN -->
@@ -50,10 +31,7 @@
             <h1 class="text-3xl sm:text-4xl font-extrabold text-center sm:text-left text-purple-800">Projeção Financeira</h1>
             <p class="text-center sm:text-left text-gray-500">Sincronizada na nuvem com Firebase.</p>
         </div>
-        <div class="flex items-center gap-4 mt-4 sm:mt-0">
-            <button id="dark-mode-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800">🌙</button>
-            <div id="auth-container"></div>
-        </div>
+        <div id="auth-container" class="mt-4 sm:mt-0"></div>
     </div>
     
     <div id="app-container" class="disabled">
@@ -66,7 +44,7 @@
           </div>
           <div>
             <h2 class="text-xl font-bold mb-3 text-purple-800">Configurações Gerais</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div class="flex flex-col p-4 bg-white rounded-lg border">
                 <label for="total-goal" class="text-sm font-semibold text-gray-600 mb-1">Meta Financeira:</label>
                 <div class="flex items-center">
@@ -85,38 +63,21 @@
                 <label for="projection-start-date" class="text-sm font-semibold text-gray-600 mb-1">Início da Projeção:</label>
                 <input type="month" id="projection-start-date" class="text-lg font-bold text-gray-700 bg-transparent border-none focus:outline-none w-full">
               </div>
-              <div class="flex flex-col justify-center p-4 bg-white rounded-lg border">
-                <label for="show-until-goal" class="text-sm font-semibold text-gray-600 mb-2">Limitar projeção à meta?</label>
-                <div class="flex items-center">
-                    <input type="checkbox" id="show-until-goal" class="h-6 w-6 rounded border-gray-300 text-purple-600 shadow-sm focus:ring-purple-500">
-                    <span class="ml-2 text-gray-700">Sim</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
 
-        <!-- GRÁFICO E EVENTOS -->
-        <div class="space-y-8 mb-8">
-            <div>
-                <h2 class="text-2xl font-bold mb-4 text-purple-800">Evolução do Património</h2>
-                <div class="bg-white p-4 rounded-xl shadow-lg border">
-                    <canvas id="evolution-chart"></canvas>
-                </div>
-            </div>
-            <div>
-                <h2 class="text-2xl font-bold mb-4 text-purple-800">Eventos Financeiros</h2>
-                <div class="bg-white p-6 rounded-xl shadow-lg border space-y-4">
-                    <div id="events-container" class="space-y-3"></div>
-                    <button id="add-event-button" class="mt-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition duration-300">+ Adicionar Evento</button>
-                </div>
+        <!-- GRÁFICO DE EVOLUÇÃO -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold mb-4 text-purple-800">Evolução do Património</h2>
+            <div class="bg-white p-4 rounded-xl shadow-lg border">
+                <canvas id="evolution-chart"></canvas>
             </div>
         </div>
 
         <div class="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
           <button id="recalculate-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-purple-600 text-white font-bold rounded-full shadow-lg hover:bg-purple-700 transition duration-300 text-lg">Recalcular</button>
           <button id="save-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-gray-500 text-white font-bold rounded-full shadow-lg hover:bg-gray-600 transition duration-300 text-lg">Salvar na Nuvem</button>
-          <button id="export-csv-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-green-600 text-white font-bold rounded-full shadow-lg hover:bg-green-700 transition duration-300 text-lg">Exportar CSV</button>
           <button id="reset-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-red-500 text-white font-bold rounded-full shadow-lg hover:bg-red-600 transition duration-300 text-lg">Resetar</button>
         </div>
 
@@ -165,7 +126,6 @@
     const provider = new GoogleAuthProvider();
 
     let state = {};
-    let tableInputData = [];
     let currentUser = null;
     let evolutionChartInstance = null;
     let summaryPieChartInstance = null;
@@ -173,19 +133,22 @@
     function getDefaultState() {
         return {
             banks: [{ id: Date.now(), name: 'Exemplo', balance: 50000, yieldRate: 1.0, limit: null }],
-            events: [],
             general: {
                 totalGoal: 1000000,
                 defaultContribution: 6000,
-                startDate: new Date().toISOString().slice(0, 7),
-                showUntilGoal: false,
-                darkMode: false
+                startDate: new Date().toISOString().slice(0, 7)
             }
         };
     }
     
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app-container');
+
+    function renderApp() {
+        renderBankInputs();
+        renderGeneralInputs();
+        renderTableAndCharts();
+    }
 
     function renderTableAndCharts() {
         if (!currentUser) return;
@@ -194,36 +157,16 @@
         renderEvolutionChart(projection);
         renderSummaryChart(projection);
     }
-
-    function renderApp() {
-        renderBankInputs();
-        renderGeneralInputs();
-        renderEvents();
-        renderTableAndCharts();
-        updateTheme();
-    }
     
-    function updateTheme() {
-        if (state.general.darkMode) {
-            document.documentElement.classList.add('dark');
-            document.getElementById('dark-mode-toggle').textContent = '☀️';
-        } else {
-            document.documentElement.classList.remove('dark');
-            document.getElementById('dark-mode-toggle').textContent = '🌙';
-        }
-    }
-
     function renderBankInputs() {
         const container = document.getElementById('banks-container');
-        container.innerHTML = (state.banks || []).map((bank, index) => `
+        container.innerHTML = (state.banks || []).map((bank) => `
             <div class="bank-entry grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 bg-white rounded-lg border" data-id="${bank.id}">
-                <input type="text" value="${bank.name}" data-field="name" placeholder="Nome do Banco" class="bank-input col-span-1 md:col-span-1 border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500">
-                <div class="col-span-1 md:col-span-4 grid grid-cols-1 md:grid-cols-4 gap-2">
-                    <input type="number" value="${bank.balance}" data-field="balance" placeholder="Saldo Inicial" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Saldo Inicial">
-                    <input type="number" value="${bank.yieldRate}" data-field="yieldRate" placeholder="Rendimento %" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Rendimento Mensal %">
-                    <input type="number" value="${bank.limit || ''}" data-field="limit" placeholder="Limite (opcional)" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Limite de Aporte (opcional)">
-                    <button data-id="${bank.id}" class="remove-bank-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 p-2">- Remover</button>
-                </div>
+                <input type="text" value="${bank.name}" data-field="name" class="bank-input col-span-1 border-gray-300 rounded-md">
+                <input type="number" value="${bank.balance}" data-field="balance" class="bank-input text-right border-gray-300 rounded-md">
+                <input type="number" value="${bank.yieldRate}" data-field="yieldRate" class="bank-input text-right border-gray-300 rounded-md">
+                <input type="number" value="${bank.limit || ''}" data-field="limit" placeholder="Opcional" class="bank-input text-right border-gray-300 rounded-md">
+                <button data-id="${bank.id}" class="remove-bank-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 p-2">- Remover</button>
             </div>
         `).join('');
     }
@@ -232,78 +175,27 @@
         document.getElementById('total-goal').value = state.general.totalGoal;
         document.getElementById('default-contribution').value = state.general.defaultContribution;
         document.getElementById('projection-start-date').value = state.general.startDate || '';
-        document.getElementById('show-until-goal').checked = state.general.showUntilGoal;
-    }
-
-    function renderEvents() {
-        const container = document.getElementById('events-container');
-        const bankOptions = (state.banks || []).map(b => `<option value="${b.id}">${b.name}</option>`).join('') || `<option>Crie um banco primeiro</option>`;
-        container.innerHTML = (state.events || []).map((event, index) => {
-            const isContributionChange = event.type === 'contribution_change';
-            const selectedBankId = event.bankId || (state.banks.length > 0 ? state.banks[0].id : '');
-            return `
-            <div class="event-entry grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border" data-id="${event.id}">
-                <select data-field="type" class="event-input border-gray-300 rounded-md">
-                    <option value="deposit" ${event.type === 'deposit' ? 'selected' : ''}>Aporte Extra</option>
-                    <option value="withdrawal" ${event.type === 'withdrawal' ? 'selected' : ''}>Retirada</option>
-                    <option value="contribution_change" ${isContributionChange ? 'selected' : ''}>Mudar Aporte Padrão</option>
-                </select>
-                <input type="month" value="${event.date}" data-field="date" class="event-input border-gray-300 rounded-md">
-                <input type="number" value="${event.amount}" data-field="amount" placeholder="Valor" class="event-input text-right border-gray-300 rounded-md">
-                <select data-field="bankId" class="event-input border-gray-300 rounded-md ${isContributionChange ? 'hidden' : ''}">
-                    ${(state.banks || []).map(b => `<option value="${b.id}" ${b.id == selectedBankId ? 'selected' : ''}>${b.name}</option>`).join('')}
-                </select>
-                <button data-id="${event.id}" class="remove-event-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 p-2">- Remover</button>
-            </div>
-        `}).join('');
     }
     
     function renderTable(projection) {
-        if (!currentUser) return; 
-        const thead = document.getElementById('projection-table-head');
         const tbody = document.getElementById('projection-table-body');
         const finalSummary = document.getElementById('final-summary');
         const summaryDetails = document.getElementById('summary-details');
 
-        let headerHtml = '<tr><th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider border-r">Mês</th>';
-        (state.banks || []).forEach(bank => {
-            headerHtml += `<th colspan="4" class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-b border-r">${bank.name}</th>`;
-        });
-        headerHtml += '<th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider">Saldo Total</th></tr><tr>';
-        (state.banks || []).forEach(() => {
-            headerHtml += `
-                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Saldo Início</th>
-                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Aporte</th>
-                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Rendimento (%)</th>
-                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Saldo Final</th>
-            `;
-        });
-        headerHtml += '</tr>';
-        thead.innerHTML = headerHtml;
-
-        let resultsToRender = projection.results;
-        if (state.general.showUntilGoal && projection.goalReached) {
-            resultsToRender = projection.results.slice(0, projection.totalMonthsToGoal);
-        }
-
-        tbody.innerHTML = resultsToRender.map((month, monthIndex) => {
+        tbody.innerHTML = projection.results.map(month => {
             let rowHtml = `<tr class="${month.isGoalMonth ? 'bg-green-100' : ''}">
-                <td class="px-3 py-3 whitespace-nowrap text-sm text-center font-medium border-r">${month.date}</td>`;
+                <td class="px-3 py-3 text-sm text-center border-r">${month.date}</td>`;
             
-            month.banks.forEach((bankData, bankIndex) => {
+            month.banks.forEach(bankData => {
                 rowHtml += `
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-700 border-r">${formatCurrency(bankData.startBalance)}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-right font-medium text-green-600 border-r editable-cell">
-                        <input type="number" step="100" value="${bankData.contribution.toFixed(0)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="contribution" class="table-input">
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-right text-purple-600 border-r editable-cell">
-                        <input type="number" step="0.01" value="${bankData.yieldRate.toFixed(2)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="yieldRate" class="table-input">
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-right font-bold border-r">${formatCurrency(bankData.endBalance)}</td>
+                    <td class="px-3 py-3 text-sm text-right border-r">${formatCurrency(bankData.startBalance)}</td>
+                    <td class="px-3 py-3 text-sm text-right border-r text-green-600">${formatCurrency(bankData.contribution)}</td>
+                    <td class="px-3 py-3 text-sm text-right border-r text-purple-600">${bankData.yieldRate.toFixed(2)}%</td>
+                    <td class="px-3 py-3 text-sm text-right font-bold border-r">${formatCurrency(bankData.endBalance)}</td>
                 `;
             });
 
-            rowHtml += `<td class="px-3 py-3 whitespace-nowrap text-sm text-right font-extrabold text-purple-800">${formatCurrency(month.totalBalance)}</td></tr>`;
+            rowHtml += `<td class="px-3 py-3 text-sm text-right font-extrabold">${formatCurrency(month.totalBalance)}</td></tr>`;
             return rowHtml;
         }).join('');
 
@@ -316,27 +208,21 @@
             `;
         } else {
             const finalTotal = projection.results.length > 0 ? projection.results.slice(-1)[0].totalBalance : 0;
-            finalSummary.innerHTML = `Meta não atingida no período de ${Math.floor(600 / 12)} anos.<br>Saldo final: <span class="text-orange-700">${formatCurrency(finalTotal)}</span>`;
+            finalSummary.innerHTML = `Meta não atingida.<br>Saldo final projetado: <span class="text-orange-700">${formatCurrency(finalTotal)}</span>`;
             summaryDetails.innerHTML = '';
         }
     }
     
     function renderEvolutionChart(projection) {
         const ctx = document.getElementById('evolution-chart').getContext('2d');
-        const labels = projection.results.map(r => r.date);
-        const data = projection.results.map(r => r.totalBalance);
-
-        if (evolutionChartInstance) {
-            evolutionChartInstance.destroy();
-        }
-
+        if (evolutionChartInstance) evolutionChartInstance.destroy();
         evolutionChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
+                labels: projection.results.map(r => r.date),
                 datasets: [{
                     label: 'Património Total',
-                    data: data,
+                    data: projection.results.map(r => r.totalBalance),
                     borderColor: '#8b5cf6',
                     backgroundColor: 'rgba(139, 92, 246, 0.1)',
                     fill: true,
@@ -349,9 +235,7 @@
 
     function renderSummaryChart(projection) {
         const ctx = document.getElementById('summary-pie-chart').getContext('2d');
-        if (summaryPieChartInstance) {
-            summaryPieChartInstance.destroy();
-        }
+        if (summaryPieChartInstance) summaryPieChartInstance.destroy();
 
         if (projection.goalReached && projection.totalContributed > 0) {
             summaryPieChartInstance = new Chart(ctx, {
@@ -362,15 +246,13 @@
                         data: [projection.totalContributed, projection.totalInterest],
                         backgroundColor: ['#34d399', '#a78bfa'],
                     }]
-                },
-                options: { responsive: true, maintainAspectRatio: true }
+                }
             });
         }
     }
 
     function calculateProjection() {
         let balances = (state.banks || []).map(b => b.balance);
-        let currentDefaultContribution = state.general.defaultContribution;
         let totalContributed = (state.banks || []).reduce((sum, b) => sum + b.balance, 0);
         let totalInterest = 0;
         
@@ -378,57 +260,30 @@
         startDate.setDate(1);
         let currentDate = new Date(startDate.getTime());
         
-        const sortedEvents = [...(state.events || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
-
         const results = [];
-        let goalReached = false, goalInfo = {}, totalMonthsToGoal = 600;
+        let goalReached = false, goalInfo = {};
 
         for (let i = 0; i < 600; i++) {
-            const monthStr = currentDate.toISOString().slice(0, 7);
-            
-            sortedEvents.filter(e => e.date === monthStr).forEach(event => {
-                const amount = parseFloat(event.amount) || 0;
-                if (event.type === 'deposit') {
-                    const bankIndex = state.banks.findIndex(b => b.id == event.bankId);
-                    if (bankIndex !== -1) { balances[bankIndex] += amount; totalContributed += amount; }
-                } else if (event.type === 'withdrawal') {
-                    const bankIndex = state.banks.findIndex(b => b.id == event.bankId);
-                    if (bankIndex !== -1) { balances[bankIndex] -= amount; totalContributed -= amount; }
-                } else if (event.type === 'contribution_change') {
-                    currentDefaultContribution = amount;
-                }
-            });
+            let monthlyContribution = state.general.defaultContribution;
+            let contributionApplied = false;
 
-            const monthContributions = [];
-            let remainingMonthlyContribution = currentDefaultContribution;
-            
-            (state.banks || []).forEach((bank, j) => {
-                const monthInputs = tableInputData[i] || {};
-                const contributions = monthInputs.contributions ?? [];
-                let contribution = contributions[j] ?? 0;
-
-                if (remainingMonthlyContribution > 0 && (contributions[j] === undefined || i > 0) ) {
-                    const bankLimit = bank.limit;
-                    if (bankLimit === null || balances[j] < bankLimit) {
-                        contribution += remainingMonthlyContribution;
-                        remainingMonthlyContribution = 0;
-                    }
+            let contributionTargetIndex = -1;
+            for(let j=0; j < state.banks.length; j++) {
+                if(state.banks[j].limit === null || balances[j] < state.banks[j].limit) {
+                    contributionTargetIndex = j;
+                    break;
                 }
-                monthContributions[j] = contribution;
-                if(i > 0 || (contributions[j] !== undefined)) { // Aportes editados não contam como parte do aporte padrão
-                    totalContributed += contribution;
-                }
-            });
-            totalContributed += remainingMonthlyContribution; // Adiciona o que sobrou do aporte padrão
+            }
+            if(contributionTargetIndex === -1 && state.banks.length > 0) {
+                contributionTargetIndex = state.banks.length - 1;
+            }
 
             let monthInterest = 0;
             const bankDataForMonth = [];
             (state.banks || []).forEach((bank, j) => {
                 const startBalance = balances[j];
-                const contribution = monthContributions[j] || 0;
-                const monthInputs = tableInputData[i] || {};
-                const yieldRates = monthInputs.yieldRates ?? [];
-                const yieldRate = yieldRates[j] ?? bank.yieldRate;
+                const contribution = (j === contributionTargetIndex) ? monthlyContribution : 0;
+                const yieldRate = bank.yieldRate;
                 const yieldAmount = (startBalance + contribution) * (yieldRate / 100);
                 const endBalance = startBalance + contribution + yieldAmount;
                 
@@ -436,6 +291,7 @@
                 balances[j] = endBalance;
                 bankDataForMonth.push({ startBalance, contribution, yieldRate, yieldAmount, endBalance });
             });
+            totalContributed += monthlyContribution;
             totalInterest += monthInterest;
             
             const totalBalance = balances.reduce((sum, b) => sum + b, 0);
@@ -445,41 +301,28 @@
             if (totalBalance >= state.general.totalGoal && !goalReached) {
                 goalReached = true;
                 monthResult.isGoalMonth = true;
-                totalMonthsToGoal = i + 1;
-                goalInfo = {
-                    years: Math.floor(totalMonthsToGoal / 12),
-                    months: totalMonthsToGoal % 12,
-                    finalTotal: totalBalance
-                };
+                const totalMonths = i + 1;
+                goalInfo = { years: Math.floor(totalMonths / 12), months: totalMonths % 12, finalTotal: totalBalance };
             }
             results.push(monthResult);
             currentDate.setMonth(currentDate.getMonth() + 1);
         }
-        return { results, goalReached, goalInfo, totalMonthsToGoal, totalContributed, totalInterest };
+        return { results, goalReached, goalInfo, totalContributed, totalInterest };
     }
 
     async function loadState() {
         if (!currentUser) return;
         const docRef = doc(db, "users", currentUser.uid);
-        const statusMessage = document.getElementById('status-message');
-        statusMessage.textContent = 'Carregando dados da nuvem...';
         try {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
-                const data = docSnap.data();
-                state = { ...getDefaultState(), ...data, general: {...getDefaultState().general, ...data.general} };
-                tableInputData = data.monthlyEdits || [];
-                statusMessage.textContent = 'Dados carregados com sucesso!';
+                state = { ...getDefaultState(), ...docSnap.data(), general: {...getDefaultState().general, ...docSnap.data().general} };
             } else {
                 state = getDefaultState();
-                tableInputData = [];
-                statusMessage.textContent = 'Bem-vindo! Começando uma nova projeção.';
             }
         } catch (error) {
-            console.error("Erro ao carregar dados do Firestore:", error);
-            statusMessage.textContent = 'Erro ao carregar dados.';
+            console.error("Erro ao carregar dados:", error);
             state = getDefaultState();
-            tableInputData = [];
         }
         renderApp();
     }
@@ -488,12 +331,9 @@
         state.general.totalGoal = parseFloat(document.getElementById('total-goal').value) || 0;
         state.general.defaultContribution = parseFloat(document.getElementById('default-contribution').value) || 0;
         state.general.startDate = document.getElementById('projection-start-date').value || '';
-        state.general.showUntilGoal = document.getElementById('show-until-goal').checked;
-        state.general.darkMode = document.documentElement.classList.contains('dark');
         
         const newBanks = [];
-        const bankElements = document.querySelectorAll('#banks-container .bank-entry');
-        bankElements.forEach((el) => {
+        document.querySelectorAll('#banks-container .bank-entry').forEach(el => {
             newBanks.push({
                 id: parseInt(el.dataset.id, 10),
                 name: el.querySelector('[data-field="name"]').value,
@@ -503,19 +343,6 @@
             });
         });
         state.banks = newBanks;
-
-        const newEvents = [];
-        const eventElements = document.querySelectorAll('#events-container .event-entry');
-        eventElements.forEach(el => {
-             newEvents.push({
-                 id: parseInt(el.dataset.id, 10),
-                 type: el.querySelector('[data-field="type"]').value,
-                 date: el.querySelector('[data-field="date"]').value,
-                 amount: parseFloat(el.querySelector('[data-field="amount"]').value) || 0,
-                 bankId: parseInt(el.querySelector('[data-field="bankId"]').value, 10)
-             });
-         });
-         state.events = newEvents;
     }
 
     async function saveState() {
@@ -523,127 +350,55 @@
         updateStateFromInputs();
         const docRef = doc(db, "users", currentUser.uid);
         const statusMessage = document.getElementById('status-message');
-        const dataToSave = { ...state, monthlyEdits: tableInputData };
         try {
             statusMessage.textContent = 'Salvando na nuvem...';
-            await setDoc(docRef, dataToSave);
-            statusMessage.textContent = 'Valores salvos com sucesso na nuvem!';
+            await setDoc(docRef, state);
+            statusMessage.textContent = 'Valores salvos com sucesso!';
         } catch (error) {
-            console.error("Erro ao salvar no Firestore:", error);
+            console.error("Erro ao salvar:", error);
             statusMessage.textContent = 'Erro ao salvar os dados.';
         }
     }
 
     function resetToDefault(confirmReset = true) {
-        if (confirmReset && !confirm('Tem certeza que deseja resetar todos os dados para o padrão?')) return;
+        if (confirmReset && !confirm('Tem certeza que deseja resetar?')) return;
         state = getDefaultState();
-        tableInputData = [];
         renderApp();
         if (currentUser) saveState();
     }
-
-    function exportToCSV() {
-        const projection = calculateProjection();
-        let csvContent = "data:text/csv;charset=utf-8,";
-        const headers = ["Mês", ...state.banks.flatMap(b => [`${b.name} Saldo Início`, `${b.name} Aporte`, `${b.name} Rendimento (%)`, `${b.name} Saldo Final`]), "Saldo Total"];
-        csvContent += headers.join(",") + "\r\n";
-        projection.results.forEach(row => {
-            const rowData = [
-                `"${row.date}"`,
-                ...row.banks.flatMap(b => [b.startBalance.toFixed(2), b.contribution.toFixed(2), b.yieldRate.toFixed(2), b.endBalance.toFixed(2)]),
-                row.totalBalance.toFixed(2)
-            ];
-            csvContent += rowData.join(",") + "\r\n";
-        });
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "projecao_financeira.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
     
-    function handleTableInputChange(e) {
-        const { monthIndex, bankIndex, field } = e.target.dataset;
-        const value = parseFloat(e.target.value);
-
-        if (isNaN(value)) return;
-        const monthIdx = parseInt(monthIndex, 10);
-        const bankIdx = parseInt(bankIndex, 10);
-
-        while (tableInputData.length <= monthIdx) {
-            tableInputData.push({});
-        }
-        
-        const fieldMap = {
-            contribution: 'contributions',
-            yieldRate: 'yieldRates'
-        };
-        const arrayField = fieldMap[field];
-
-        if (!tableInputData[monthIdx][arrayField]) {
-            tableInputData[monthIdx][arrayField] = [];
-        }
-        tableInputData[monthIdx][arrayField][bankIdx] = value;
-
-        renderTableAndCharts();
-    }
-
     const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 
     document.addEventListener('DOMContentLoaded', () => {
-        authContainer.innerHTML = '<p class="text-sm text-gray-500">Verificando autenticação...</p>';
+        authContainer.innerHTML = '<p class="text-sm">Verificando...</p>';
         appContainer.classList.add('loading');
         
-        setPersistence(auth, browserLocalPersistence)
-          .then(() => onAuthStateChanged(auth, user => {
-              if (user) {
-                  currentUser = user;
-                  authContainer.innerHTML = `<div class="text-right"><p class="text-sm">${user.displayName}</p><button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button></div>`;
-                  appContainer.classList.remove('loading', 'disabled');
-                  loadState();
-              } else {
-                  currentUser = null;
-                  authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600">Entrar com Google</button>';
-                  appContainer.classList.add('disabled');
-                  appContainer.classList.remove('loading');
-                  resetToDefault(false);
-              }
-          }));
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                currentUser = user;
+                authContainer.innerHTML = `<div class="text-right"><p class="text-sm">${user.displayName}</p><button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button></div>`;
+                appContainer.classList.remove('loading', 'disabled');
+                loadState();
+            } else {
+                currentUser = null;
+                authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow">Entrar com Google</button>';
+                appContainer.classList.add('disabled');
+                appContainer.classList.remove('loading');
+                state = getDefaultState();
+                renderApp();
+            }
+        });
         
-        authContainer.addEventListener('click', (e) => {
+        authContainer.addEventListener('click', e => {
             if (e.target.id === 'login-button') signInWithPopup(auth, provider).catch(err => console.error("Erro no login:", err));
             if (e.target.id === 'logout-button') signOut(auth).catch(err => console.error("Erro no logout:", err));
         });
 
-        document.getElementById('dark-mode-toggle').addEventListener('click', () => {
-            state.general.darkMode = !state.general.darkMode;
-            updateTheme();
-            renderTableAndCharts();
-        });
-
         document.getElementById('add-bank-button').addEventListener('click', () => {
-            if (!currentUser) return;
             state.banks.push({ id: Date.now(), name: 'Novo Banco', balance: 0, yieldRate: 1.0, limit: null });
             renderApp();
         });
         
-        document.getElementById('add-event-button').addEventListener('click', () => {
-            if (!currentUser) return;
-            if (!state.events) state.events = [];
-            state.events.push({
-                id: Date.now(),
-                type: 'deposit',
-                date: new Date().toISOString().slice(0, 7),
-                amount: 10000,
-                bankId: state.banks.length > 0 ? state.banks[0].id : null
-            });
-            renderEvents();
-            renderTableAndCharts();
-        });
-
-        document.getElementById('banks-container').addEventListener('change', e => { if (e.target.classList.contains('bank-input')) { updateStateFromInputs(); renderTableAndCharts(); }});
         document.getElementById('banks-container').addEventListener('click', e => {
             if (e.target.classList.contains('remove-bank-button')) {
                 const bankId = parseInt(e.target.dataset.id, 10);
@@ -652,26 +407,13 @@
             }
         });
         
-        document.getElementById('events-container').addEventListener('change', e => { if (e.target.classList.contains('event-input')) { updateStateFromInputs(); renderTableAndCharts(); }});
-        document.getElementById('events-container').addEventListener('click', e => {
-            if (e.target.classList.contains('remove-event-button')) {
-                const eventId = parseInt(e.target.dataset.id, 10);
-                state.events = state.events.filter(ev => ev.id !== eventId);
-                renderEvents();
-                renderTableAndCharts();
-            }
+        ['total-goal', 'default-contribution', 'projection-start-date'].forEach(id => {
+            document.getElementById(id).addEventListener('change', renderTableAndCharts);
         });
-        
-        ['total-goal', 'default-contribution', 'projection-start-date', 'show-until-goal'].forEach(id => {
-            document.getElementById(id).addEventListener('change', () => { updateStateFromInputs(); renderTableAndCharts(); });
-        });
-        
-        document.getElementById('projection-table-body').addEventListener('change', e => { if (e.target.classList.contains('table-input')) { handleTableInputChange(e); }});
         
         document.getElementById('recalculate-button').addEventListener('click', () => { updateStateFromInputs(); renderTableAndCharts(); });
         document.getElementById('save-button').addEventListener('click', saveState);
         document.getElementById('reset-button').addEventListener('click', () => resetToDefault(true));
-        document.getElementById('export-csv-button').addEventListener('click', exportToCSV);
     });
   </script>
 </body>
