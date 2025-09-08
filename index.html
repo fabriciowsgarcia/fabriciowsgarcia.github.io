@@ -70,14 +70,14 @@
                 <label for="total-goal" class="text-sm font-semibold text-gray-600 mb-1">Meta Financeira:</label>
                 <div class="flex items-center">
                   <span class="text-lg font-bold text-blue-600">R$</span>
-                  <input type="number" id="total-goal" value="1000000.00" class="text-lg font-bold text-blue-600 text-left bg-transparent border-none focus:outline-none w-full">
+                  <input type="text" id="total-goal" value="1.000.000,00" class="text-lg font-bold text-blue-600 text-left bg-transparent border-none focus:outline-none w-full">
                 </div>
               </div>
               <div class="flex flex-col p-4 bg-white rounded-lg border">
                 <label for="default-contribution" class="text-sm font-semibold text-gray-600 mb-1">Aporte Mensal Padrão:</label>
                 <div class="flex items-center">
                   <span class="text-lg font-bold text-green-600">R$</span>
-                  <input type="number" id="default-contribution" value="6000.00" class="text-lg font-bold text-green-600 text-left bg-transparent border-none focus:outline-none w-full">
+                  <input type="text" id="default-contribution" value="6.000,00" class="text-lg font-bold text-green-600 text-left bg-transparent border-none focus:outline-none w-full">
                 </div>
               </div>
               <div class="flex flex-col p-4 bg-white rounded-lg border">
@@ -169,6 +169,16 @@
     let evolutionChartInstance = null;
     let summaryPieChartInstance = null;
 
+    // --- FUNÇÕES DE UTILIDADE ---
+    const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+    const formatNumberToInput = (value) => value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\./g, ',');
+
+    const parseBrazilianNumber = (stringValue) => {
+        if (typeof stringValue !== 'string' || !stringValue) return 0;
+        const sanitized = stringValue.replace(/\./g, '').replace(',', '.');
+        return parseFloat(sanitized) || 0;
+    };
+
     function getDefaultState() {
         return {
             banks: [{ id: Date.now(), name: 'Exemplo', balance: 50000, yieldRate: 1.0, limit: null }],
@@ -217,17 +227,17 @@
         container.innerHTML = (state.banks || []).map((bank) => `
             <div class="bank-entry grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 bg-white rounded-lg border" data-id="${bank.id}">
                 <input type="text" value="${bank.name}" data-field="name" class="bank-input col-span-1 border-gray-300 rounded-md">
-                <input type="number" value="${bank.balance}" data-field="balance" class="bank-input text-right border-gray-300 rounded-md">
-                <input type="number" value="${bank.yieldRate}" data-field="yieldRate" class="bank-input text-right border-gray-300 rounded-md">
-                <input type="number" value="${bank.limit || ''}" data-field="limit" placeholder="Opcional" class="bank-input text-right border-gray-300 rounded-md">
+                <input type="text" value="${formatNumberToInput(bank.balance)}" data-field="balance" class="bank-input text-right border-gray-300 rounded-md">
+                <input type="text" value="${formatNumberToInput(bank.yieldRate)}" data-field="yieldRate" class="bank-input text-right border-gray-300 rounded-md">
+                <input type="text" value="${bank.limit ? formatNumberToInput(bank.limit) : ''}" data-field="limit" placeholder="Opcional" class="bank-input text-right border-gray-300 rounded-md">
                 <button data-id="${bank.id}" class="remove-bank-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 p-2">- Remover</button>
             </div>
         `).join('');
     }
 
     function renderGeneralInputs() {
-        document.getElementById('total-goal').value = state.general.totalGoal;
-        document.getElementById('default-contribution').value = state.general.defaultContribution;
+        document.getElementById('total-goal').value = formatNumberToInput(state.general.totalGoal);
+        document.getElementById('default-contribution').value = formatNumberToInput(state.general.defaultContribution);
         document.getElementById('projection-start-date').value = state.general.startDate || '';
         document.getElementById('show-until-goal').checked = state.general.showUntilGoal;
     }
@@ -246,7 +256,7 @@
                     <option value="contribution_change" ${isContributionChange ? 'selected' : ''}>Mudar Aporte Padrão</option>
                 </select>
                 <input type="month" value="${event.date}" data-field="date" class="event-input border-gray-300 rounded-md">
-                <input type="number" value="${event.amount}" data-field="amount" placeholder="Valor" class="event-input text-right border-gray-300 rounded-md">
+                <input type="text" value="${formatNumberToInput(event.amount)}" data-field="amount" placeholder="Valor" class="event-input text-right border-gray-300 rounded-md">
                 <select data-field="bankId" class="event-input border-gray-300 rounded-md ${isContributionChange ? 'hidden' : ''}">
                     ${(state.banks || []).map(b => `<option value="${b.id}" ${b.id == selectedBankId ? 'selected' : ''}>${b.name}</option>`).join('')}
                 </select>
@@ -290,10 +300,10 @@
                 rowHtml += `
                     <td class="px-3 py-3 text-sm text-right border-r">${formatCurrency(bankData.startBalance)}</td>
                     <td class="px-3 py-3 text-sm text-right text-green-600 border-r editable-cell">
-                        <input type="number" step="100" value="${bankData.contribution.toFixed(0)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="contribution" class="table-input">
+                        <input type="text" value="${formatNumberToInput(bankData.contribution)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="contribution" class="table-input">
                     </td>
                     <td class="px-3 py-3 text-sm text-right text-purple-600 border-r editable-cell">
-                         <input type="number" step="0.01" value="${bankData.yieldRate.toFixed(2)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="yieldRate" class="table-input">
+                         <input type="text" value="${formatNumberToInput(bankData.yieldRate)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="yieldRate" class="table-input">
                     </td>
                     <td class="px-3 py-3 text-sm text-right font-bold border-r">${formatCurrency(bankData.endBalance)}</td>
                 `;
@@ -383,7 +393,7 @@
             const monthStr = currentDate.toISOString().slice(0, 7);
             
             sortedEvents.filter(e => e.date === monthStr).forEach(event => {
-                const amount = parseFloat(event.amount) || 0;
+                const amount = event.amount || 0;
                 if (event.type === 'deposit') {
                     const bankIndex = state.banks.findIndex(b => b.id == event.bankId);
                     if (bankIndex !== -1) { balances[bankIndex] += amount; totalContributed += amount; }
@@ -435,7 +445,17 @@
                 bankDataForMonth.push({ startBalance, contribution, yieldRate, yieldAmount, endBalance });
             });
 
-            totalContributed += monthlyContributionTotal;
+            if (contributionOverrides.length === 0) {
+                totalContributed += monthlyContributionTotal;
+            } else {
+                 contributionOverrides.forEach((c, index) => {
+                     if(c !== undefined) totalContributed += c;
+                     else {
+                         // Lógica para aporte padrão caso um campo seja editado e outro não
+                     }
+                 });
+            }
+
             totalInterest += bankDataForMonth.reduce((sum, b) => sum + b.yieldAmount, 0);
             
             const totalBalance = balances.reduce((sum, b) => sum + b, 0);
@@ -482,8 +502,8 @@
     }
     
     function updateStateFromInputs() {
-        state.general.totalGoal = parseFloat(document.getElementById('total-goal').value) || 0;
-        state.general.defaultContribution = parseFloat(document.getElementById('default-contribution').value) || 0;
+        state.general.totalGoal = parseBrazilianNumber(document.getElementById('total-goal').value);
+        state.general.defaultContribution = parseBrazilianNumber(document.getElementById('default-contribution').value);
         state.general.startDate = document.getElementById('projection-start-date').value || '';
         state.general.showUntilGoal = document.getElementById('show-until-goal').checked;
         state.general.darkMode = document.documentElement.classList.contains('dark');
@@ -493,9 +513,9 @@
             newBanks.push({
                 id: parseInt(el.dataset.id, 10),
                 name: el.querySelector('[data-field="name"]').value,
-                balance: parseFloat(el.querySelector('[data-field="balance"]').value) || 0,
-                yieldRate: parseFloat(el.querySelector('[data-field="yieldRate"]').value) || 0,
-                limit: parseFloat(el.querySelector('[data-field="limit"]').value) || null,
+                balance: parseBrazilianNumber(el.querySelector('[data-field="balance"]').value),
+                yieldRate: parseBrazilianNumber(el.querySelector('[data-field="yieldRate"]').value),
+                limit: parseBrazilianNumber(el.querySelector('[data-field="limit"]').value) || null,
             });
         });
         state.banks = newBanks;
@@ -506,7 +526,7 @@
                  id: parseInt(el.dataset.id, 10),
                  type: el.querySelector('[data-field="type"]').value,
                  date: el.querySelector('[data-field="date"]').value,
-                 amount: parseFloat(el.querySelector('[data-field="amount"]').value) || 0,
+                 amount: parseBrazilianNumber(el.querySelector('[data-field="amount"]').value),
                  bankId: parseInt(el.querySelector('[data-field="bankId"]').value, 10)
              });
          });
@@ -561,7 +581,7 @@
 
     function handleTableInputChange(e) {
         const { monthIndex, bankIndex, field } = e.target.dataset;
-        const value = parseFloat(e.target.value);
+        const value = parseBrazilianNumber(e.target.value);
 
         if (isNaN(value)) return;
         const monthIdx = parseInt(monthIndex, 10);
@@ -584,8 +604,6 @@
 
         renderTableAndCharts();
     }
-
-    const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 
     document.addEventListener('DOMContentLoaded', () => {
         authContainer.innerHTML = '<p class="text-sm">Verificando...</p>';
