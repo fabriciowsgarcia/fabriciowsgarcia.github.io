@@ -4,7 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Projeção Financeira Sincronizada</title>
+  <!-- CORREÇÃO: Política de Segurança de Conteúdo para permitir Firebase, Google Fonts e Estilos -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com; object-src 'none'; base-uri 'self';">
+  <title>Projeção Financeira v3</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js para os gráficos -->
@@ -185,6 +187,15 @@
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app-container');
 
+    // FIX: Added function definition for renderTableAndCharts
+    function renderTableAndCharts() {
+        if (!currentUser) return;
+        const projection = calculateProjection();
+        renderTable(projection);
+        renderEvolutionChart(projection);
+        renderSummaryChart(projection);
+    }
+
     function renderApp() {
         renderBankInputs();
         renderGeneralInputs();
@@ -205,14 +216,14 @@
 
     function renderBankInputs() {
         const container = document.getElementById('banks-container');
-        container.innerHTML = state.banks.map((bank, index) => `
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 bg-white rounded-lg border">
-                <input type="text" value="${bank.name}" data-index="${index}" data-field="name" placeholder="Nome do Banco" class="bank-input col-span-1 md:col-span-1 border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500">
+        container.innerHTML = (state.banks || []).map((bank, index) => `
+            <div class="bank-entry grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 bg-white rounded-lg border" data-id="${bank.id}">
+                <input type="text" value="${bank.name}" data-field="name" placeholder="Nome do Banco" class="bank-input col-span-1 md:col-span-1 border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500">
                 <div class="col-span-1 md:col-span-4 grid grid-cols-1 md:grid-cols-4 gap-2">
-                    <input type="number" value="${bank.balance}" data-index="${index}" data-field="balance" placeholder="Saldo Inicial" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Saldo Inicial">
-                    <input type="number" value="${bank.yieldRate}" data-index="${index}" data-field="yieldRate" placeholder="Rendimento %" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Rendimento Mensal %">
-                    <input type="number" value="${bank.limit || ''}" data-index="${index}" data-field="limit" placeholder="Limite (opcional)" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Limite de Aporte (opcional)">
-                    <button data-index="${index}" class="remove-bank-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 p-2">- Remover</button>
+                    <input type="number" value="${bank.balance}" data-field="balance" placeholder="Saldo Inicial" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Saldo Inicial">
+                    <input type="number" value="${bank.yieldRate}" data-field="yieldRate" placeholder="Rendimento %" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Rendimento Mensal %">
+                    <input type="number" value="${bank.limit || ''}" data-field="limit" placeholder="Limite (opcional)" class="bank-input text-right border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500" title="Limite de Aporte (opcional)">
+                    <button data-id="${bank.id}" class="remove-bank-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 p-2">- Remover</button>
                 </div>
             </div>
         `).join('');
@@ -227,22 +238,25 @@
 
     function renderEvents() {
         const container = document.getElementById('events-container');
-        const bankOptions = state.banks.map(b => `<option value="${b.id}" ${b.id == (state.events.find(e => e.id === b.id)?.bankId || '') ? 'selected' : ''}>${b.name}</option>`).join('') || `<option>Crie um banco primeiro</option>`;
-        container.innerHTML = (state.events || []).map((event, index) => `
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border">
-                <select data-index="${index}" data-field="type" class="event-input border-gray-300 rounded-md">
+        const bankOptions = (state.banks || []).map(b => `<option value="${b.id}">${b.name}</option>`).join('') || `<option>Crie um banco primeiro</option>`;
+        container.innerHTML = (state.events || []).map((event, index) => {
+            const isContributionChange = event.type === 'contribution_change';
+            const selectedBankId = event.bankId || (state.banks.length > 0 ? state.banks[0].id : '');
+            return `
+            <div class="event-entry grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border" data-id="${event.id}">
+                <select data-field="type" class="event-input border-gray-300 rounded-md">
                     <option value="deposit" ${event.type === 'deposit' ? 'selected' : ''}>Aporte Extra</option>
                     <option value="withdrawal" ${event.type === 'withdrawal' ? 'selected' : ''}>Retirada</option>
-                    <option value="contribution_change" ${event.type === 'contribution_change' ? 'selected' : ''}>Mudar Aporte Padrão</option>
+                    <option value="contribution_change" ${isContributionChange ? 'selected' : ''}>Mudar Aporte Padrão</option>
                 </select>
-                <input type="month" value="${event.date}" data-index="${index}" data-field="date" class="event-input border-gray-300 rounded-md">
-                <input type="number" value="${event.amount}" data-index="${index}" data-field="amount" placeholder="Valor" class="event-input text-right border-gray-300 rounded-md">
-                <select data-index="${index}" data-field="bankId" class="event-input border-gray-300 rounded-md ${event.type === 'contribution_change' ? 'hidden' : ''}">
-                    ${bankOptions}
+                <input type="month" value="${event.date}" data-field="date" class="event-input border-gray-300 rounded-md">
+                <input type="number" value="${event.amount}" data-field="amount" placeholder="Valor" class="event-input text-right border-gray-300 rounded-md">
+                <select data-field="bankId" class="event-input border-gray-300 rounded-md ${isContributionChange ? 'hidden' : ''}">
+                    ${(state.banks || []).map(b => `<option value="${b.id}" ${b.id == selectedBankId ? 'selected' : ''}>${b.name}</option>`).join('')}
                 </select>
-                <button data-index="${index}" class="remove-event-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 p-2">- Remover</button>
+                <button data-id="${event.id}" class="remove-event-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 p-2">- Remover</button>
             </div>
-        `).join('');
+        `}).join('');
     }
     
     function renderTable(projection) {
@@ -253,11 +267,11 @@
         const summaryDetails = document.getElementById('summary-details');
 
         let headerHtml = '<tr><th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider border-r">Mês</th>';
-        state.banks.forEach(bank => {
+        (state.banks || []).forEach(bank => {
             headerHtml += `<th colspan="4" class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-b border-r">${bank.name}</th>`;
         });
         headerHtml += '<th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider">Saldo Total</th></tr><tr>';
-        state.banks.forEach(() => {
+        (state.banks || []).forEach(() => {
             headerHtml += `
                 <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Saldo Início</th>
                 <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Aporte</th>
@@ -340,7 +354,7 @@
             summaryPieChartInstance.destroy();
         }
 
-        if (projection.goalReached) {
+        if (projection.goalReached && projection.totalContributed > 0) {
             summaryPieChartInstance = new Chart(ctx, {
                 type: 'pie',
                 data: {
@@ -356,9 +370,9 @@
     }
 
     function calculateProjection() {
-        let balances = state.banks.map(b => b.balance);
+        let balances = (state.banks || []).map(b => b.balance);
         let currentDefaultContribution = state.general.defaultContribution;
-        let totalContributed = state.banks.reduce((sum, b) => sum + b.balance, 0);
+        let totalContributed = (state.banks || []).reduce((sum, b) => sum + b.balance, 0);
         let totalInterest = 0;
         
         let startDate = state.general.startDate ? new Date(state.general.startDate.split('-')[0], state.general.startDate.split('-')[1] - 1, 1) : new Date();
@@ -389,33 +403,34 @@
             const monthContributions = [];
             let remainingMonthlyContribution = currentDefaultContribution;
             
-            state.banks.forEach((bank, j) => {
+            (state.banks || []).forEach((bank, j) => {
                 const monthInputs = tableInputData[i] || {};
                 const contributions = monthInputs.contributions ?? [];
                 let contribution = contributions[j] ?? 0;
 
-                if (i === 0 && contributions[j] === undefined) { // Aporte padrão apenas no primeiro mês se não houver edição
-                     if (remainingMonthlyContribution > 0) {
-                        const bankLimit = bank.limit;
-                        if (bankLimit === null || balances[j] < bankLimit) {
-                            contribution = remainingMonthlyContribution;
-                            remainingMonthlyContribution = 0;
-                        }
+                if (remainingMonthlyContribution > 0 && (contributions[j] === undefined || i > 0) ) {
+                    const bankLimit = bank.limit;
+                    if (bankLimit === null || balances[j] < bankLimit) {
+                        contribution += remainingMonthlyContribution;
+                        remainingMonthlyContribution = 0;
                     }
                 }
                 monthContributions[j] = contribution;
-                totalContributed += contribution;
+                if(i > 0 || (contributions[j] !== undefined)) { // Aportes editados não contam como parte do aporte padrão
+                    totalContributed += contribution;
+                }
             });
+            totalContributed += remainingMonthlyContribution; // Adiciona o que sobrou do aporte padrão
 
             let monthInterest = 0;
             const bankDataForMonth = [];
-            state.banks.forEach((bank, j) => {
+            (state.banks || []).forEach((bank, j) => {
                 const startBalance = balances[j];
-                const contribution = monthContributions[j];
+                const contribution = monthContributions[j] || 0;
                 const monthInputs = tableInputData[i] || {};
                 const yieldRates = monthInputs.yieldRates ?? [];
                 const yieldRate = yieldRates[j] ?? bank.yieldRate;
-                const yieldAmount = startBalance * (yieldRate / 100);
+                const yieldAmount = (startBalance + contribution) * (yieldRate / 100);
                 const endBalance = startBalance + contribution + yieldAmount;
                 
                 monthInterest += yieldAmount;
@@ -477,28 +492,31 @@
         state.general.showUntilGoal = document.getElementById('show-until-goal').checked;
         state.general.darkMode = document.documentElement.classList.contains('dark');
         
-        state.banks = [];
-        const bankElements = document.querySelectorAll('#banks-container .grid');
-        bankElements.forEach((el, index) => {
-            state.banks.push({
-                id: parseInt(el.querySelector('.remove-bank-button').dataset.index, 10), // This is not robust, need to store id elsewhere
+        const newBanks = [];
+        const bankElements = document.querySelectorAll('#banks-container .bank-entry');
+        bankElements.forEach((el) => {
+            newBanks.push({
+                id: parseInt(el.dataset.id, 10),
                 name: el.querySelector('[data-field="name"]').value,
                 balance: parseFloat(el.querySelector('[data-field="balance"]').value) || 0,
                 yieldRate: parseFloat(el.querySelector('[data-field="yieldRate"]').value) || 0,
                 limit: parseFloat(el.querySelector('[data-field="limit"]').value) || null,
             });
         });
+        state.banks = newBanks;
 
-        state.events = [];
-         const eventElements = document.querySelectorAll('#events-container .grid');
-         eventElements.forEach(el => {
-             state.events.push({
+        const newEvents = [];
+        const eventElements = document.querySelectorAll('#events-container .event-entry');
+        eventElements.forEach(el => {
+             newEvents.push({
+                 id: parseInt(el.dataset.id, 10),
                  type: el.querySelector('[data-field="type"]').value,
                  date: el.querySelector('[data-field="date"]').value,
                  amount: parseFloat(el.querySelector('[data-field="amount"]').value) || 0,
                  bankId: parseInt(el.querySelector('[data-field="bankId"]').value, 10)
              });
          });
+         state.events = newEvents;
     }
 
     async function saveState() {
@@ -533,8 +551,8 @@
         projection.results.forEach(row => {
             const rowData = [
                 `"${row.date}"`,
-                ...row.banks.flatMap(b => [b.startBalance, b.contribution, b.yieldRate, b.endBalance]),
-                row.totalBalance
+                ...row.banks.flatMap(b => [b.startBalance.toFixed(2), b.contribution.toFixed(2), b.yieldRate.toFixed(2), b.endBalance.toFixed(2)]),
+                row.totalBalance.toFixed(2)
             ];
             csvContent += rowData.join(",") + "\r\n";
         });
@@ -547,6 +565,32 @@
         document.body.removeChild(link);
     }
     
+    function handleTableInputChange(e) {
+        const { monthIndex, bankIndex, field } = e.target.dataset;
+        const value = parseFloat(e.target.value);
+
+        if (isNaN(value)) return;
+        const monthIdx = parseInt(monthIndex, 10);
+        const bankIdx = parseInt(bankIndex, 10);
+
+        while (tableInputData.length <= monthIdx) {
+            tableInputData.push({});
+        }
+        
+        const fieldMap = {
+            contribution: 'contributions',
+            yieldRate: 'yieldRates'
+        };
+        const arrayField = fieldMap[field];
+
+        if (!tableInputData[monthIdx][arrayField]) {
+            tableInputData[monthIdx][arrayField] = [];
+        }
+        tableInputData[monthIdx][arrayField][bankIdx] = value;
+
+        renderTableAndCharts();
+    }
+
     const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -577,7 +621,7 @@
         document.getElementById('dark-mode-toggle').addEventListener('click', () => {
             state.general.darkMode = !state.general.darkMode;
             updateTheme();
-            renderTableAndCharts(); // Recria os gráficos com as cores do novo tema
+            renderTableAndCharts();
         });
 
         document.getElementById('add-bank-button').addEventListener('click', () => {
@@ -590,6 +634,7 @@
             if (!currentUser) return;
             if (!state.events) state.events = [];
             state.events.push({
+                id: Date.now(),
                 type: 'deposit',
                 date: new Date().toISOString().slice(0, 7),
                 amount: 10000,
@@ -602,8 +647,8 @@
         document.getElementById('banks-container').addEventListener('change', e => { if (e.target.classList.contains('bank-input')) { updateStateFromInputs(); renderTableAndCharts(); }});
         document.getElementById('banks-container').addEventListener('click', e => {
             if (e.target.classList.contains('remove-bank-button')) {
-                const index = parseInt(e.target.dataset.index, 10);
-                state.banks.splice(index, 1);
+                const bankId = parseInt(e.target.dataset.id, 10);
+                state.banks = state.banks.filter(b => b.id !== bankId);
                 renderApp();
             }
         });
@@ -611,8 +656,8 @@
         document.getElementById('events-container').addEventListener('change', e => { if (e.target.classList.contains('event-input')) { updateStateFromInputs(); renderTableAndCharts(); }});
         document.getElementById('events-container').addEventListener('click', e => {
             if (e.target.classList.contains('remove-event-button')) {
-                const index = parseInt(e.target.dataset.index, 10);
-                state.events.splice(index, 1);
+                const eventId = parseInt(e.target.dataset.id, 10);
+                state.events = state.events.filter(ev => ev.id !== eventId);
                 renderEvents();
                 renderTableAndCharts();
             }
@@ -622,7 +667,7 @@
             document.getElementById(id).addEventListener('change', () => { updateStateFromInputs(); renderTableAndCharts(); });
         });
         
-        document.getElementById('projection-table-body').addEventListener('change', e => { if (e.target.classList.contains('table-input')) { /* ... (código de handleTableInputChange) ... */ }});
+        document.getElementById('projection-table-body').addEventListener('change', e => { if (e.target.classList.contains('table-input')) { handleTableInputChange(e); }});
         
         document.getElementById('recalculate-button').addEventListener('click', () => { updateStateFromInputs(); renderTableAndCharts(); });
         document.getElementById('save-button').addEventListener('click', saveState);
