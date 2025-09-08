@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- CORREÇÃO: Política de Segurança de Conteúdo para permitir Firebase, Google Fonts e Estilos -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com; object-src 'none'; base-uri 'self';">
+  <!-- CORREÇÃO FINAL: Política de Segurança de Conteúdo para permitir TODOS os scripts do Firebase -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com; object-src 'none'; base-uri 'self';">
   <title>Projeção Financeira Sincronizada</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -187,7 +187,6 @@
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app-container');
 
-    // FIX: Added function definition for renderTableAndCharts
     function renderTableAndCharts() {
         if (!currentUser) return;
         const projection = calculateProjection();
