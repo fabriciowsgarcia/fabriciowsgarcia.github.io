@@ -171,10 +171,17 @@
 
     // --- FUNÇÕES DE UTILIDADE ---
     const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-    const formatNumberToInput = (value) => value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\./g, ',');
+    
+    // CORREÇÃO: Função de formatação para inputs corrigida para não substituir o separador de milhar.
+    const formatNumberToInput = (value) => {
+        if (typeof value !== 'number') return '';
+        return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
 
+    // CORREÇÃO: Função de parsing mais robusta para lidar com o formato brasileiro.
     const parseBrazilianNumber = (stringValue) => {
         if (typeof stringValue !== 'string' || !stringValue) return 0;
+        // Remove os pontos de milhar e substitui a vírgula decimal por um ponto.
         const sanitized = stringValue.replace(/\./g, '').replace(',', '.');
         return parseFloat(sanitized) || 0;
     };
