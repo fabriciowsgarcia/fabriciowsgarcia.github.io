@@ -65,7 +65,7 @@
           </div>
           <div>
             <h2 class="text-xl font-bold mb-3 text-purple-800">Configurações Gerais</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div class="flex flex-col p-4 bg-white rounded-lg border">
                 <label for="total-goal" class="text-sm font-semibold text-gray-600 mb-1">Meta Financeira:</label>
                 <div class="flex items-center">
@@ -83,6 +83,10 @@
               <div class="flex flex-col p-4 bg-white rounded-lg border">
                 <label for="projection-start-date" class="text-sm font-semibold text-gray-600 mb-1">Início da Projeção:</label>
                 <input type="month" id="projection-start-date" class="text-lg font-bold text-gray-700 bg-transparent border-none focus:outline-none w-full">
+              </div>
+              <div class="flex flex-col p-4 bg-white rounded-lg border">
+                <label for="inflation-rate" class="text-sm font-semibold text-gray-600 mb-1">Inflação Anual Média (%):</label>
+                <input type="text" id="inflation-rate" value="4,00" class="text-lg font-bold text-gray-700 bg-transparent border-none focus:outline-none w-full">
               </div>
               <div class="flex flex-col justify-center p-4 bg-white rounded-lg border">
                 <label for="show-until-goal" class="text-sm font-semibold text-gray-600 mb-2">Limitar projeção à meta?</label>
@@ -169,19 +173,10 @@
     let evolutionChartInstance = null;
     let summaryPieChartInstance = null;
 
-    // --- FUNÇÕES DE UTILIDADE ---
     const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-    
-    // CORREÇÃO: Função de formatação para inputs corrigida para não substituir o separador de milhar.
-    const formatNumberToInput = (value) => {
-        if (typeof value !== 'number') return '';
-        return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
-
-    // CORREÇÃO: Função de parsing mais robusta para lidar com o formato brasileiro.
+    const formatNumberToInput = (value) => value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const parseBrazilianNumber = (stringValue) => {
         if (typeof stringValue !== 'string' || !stringValue) return 0;
-        // Remove os pontos de milhar e substitui a vírgula decimal por um ponto.
         const sanitized = stringValue.replace(/\./g, '').replace(',', '.');
         return parseFloat(sanitized) || 0;
     };
@@ -195,7 +190,8 @@
                 defaultContribution: 6000,
                 startDate: new Date().toISOString().slice(0, 7),
                 showUntilGoal: false,
-                darkMode: false
+                darkMode: false,
+                inflationRate: 4.0
             }
         };
     }
@@ -246,6 +242,7 @@
         document.getElementById('total-goal').value = formatNumberToInput(state.general.totalGoal);
         document.getElementById('default-contribution').value = formatNumberToInput(state.general.defaultContribution);
         document.getElementById('projection-start-date').value = state.general.startDate || '';
+        document.getElementById('inflation-rate').value = formatNumberToInput(state.general.inflationRate);
         document.getElementById('show-until-goal').checked = state.general.showUntilGoal;
     }
     
@@ -282,7 +279,7 @@
         (state.banks || []).forEach(bank => {
             headerHtml += `<th colspan="4" class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-b border-r">${bank.name}</th>`;
         });
-        headerHtml += '<th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider">Saldo Total</th></tr><tr>';
+        headerHtml += '<th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider border-r">Saldo Total</th><th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider">Saldo Real (Ajustado)</th></tr><tr>';
         (state.banks || []).forEach(() => {
             headerHtml += `
                 <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Saldo Início</th>
@@ -316,7 +313,8 @@
                 `;
             });
 
-            rowHtml += `<td class="px-3 py-3 text-sm text-right font-extrabold">${formatCurrency(month.totalBalance)}</td></tr>`;
+            rowHtml += `<td class="px-3 py-3 text-sm text-right font-bold border-r">${formatCurrency(month.totalBalance)}</td>`;
+            rowHtml += `<td class="px-3 py-3 text-sm text-right font-extrabold">${formatCurrency(month.realBalance)}</td></tr>`;
             return rowHtml;
         }).join('');
 
@@ -343,21 +341,32 @@
         }
 
         const labels = resultsToRender.map(r => r.date);
-        const data = resultsToRender.map(r => r.totalBalance);
+        const nominalData = resultsToRender.map(r => r.totalBalance);
+        const realData = resultsToRender.map(r => r.realBalance);
 
         if (evolutionChartInstance) evolutionChartInstance.destroy();
         evolutionChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Património Total',
-                    data: data,
-                    borderColor: '#8b5cf6',
-                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                    fill: true,
-                    tension: 0.1
-                }]
+                datasets: [
+                    {
+                        label: 'Património Nominal',
+                        data: nominalData,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Património Real (Ajustado)',
+                        data: realData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }
+                ]
             },
             options: { scales: { y: { beginAtZero: true } } }
         });
@@ -387,6 +396,8 @@
         let totalContributed = (state.banks || []).reduce((sum, b) => sum + b.balance, 0);
         let totalInterest = 0;
         
+        const monthlyInflationRate = Math.pow(1 + (state.general.inflationRate / 100), 1/12) - 1;
+        
         let startDate = state.general.startDate ? new Date(state.general.startDate.split('-')[0], state.general.startDate.split('-')[1] - 1, 1) : new Date();
         startDate.setDate(1);
         let currentDate = new Date(startDate.getTime());
@@ -395,6 +406,7 @@
 
         const results = [];
         let goalReached = false, goalInfo = {}, totalMonthsToGoal = 600;
+        let accumulatedInflation = 1;
 
         for (let i = 0; i < 600; i++) {
             const monthStr = currentDate.toISOString().slice(0, 7);
@@ -455,19 +467,18 @@
             if (contributionOverrides.length === 0) {
                 totalContributed += monthlyContributionTotal;
             } else {
-                 contributionOverrides.forEach((c, index) => {
+                 contributionOverrides.forEach((c) => {
                      if(c !== undefined) totalContributed += c;
-                     else {
-                         // Lógica para aporte padrão caso um campo seja editado e outro não
-                     }
                  });
             }
 
             totalInterest += bankDataForMonth.reduce((sum, b) => sum + b.yieldAmount, 0);
             
             const totalBalance = balances.reduce((sum, b) => sum + b, 0);
+            accumulatedInflation *= (1 + monthlyInflationRate);
+            const realBalance = totalBalance / accumulatedInflation;
             
-            const monthResult = { date: currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), banks: bankDataForMonth, totalBalance, isGoalMonth: false };
+            const monthResult = { date: currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), banks: bankDataForMonth, totalBalance, realBalance, isGoalMonth: false };
 
             if (totalBalance >= state.general.totalGoal && !goalReached) {
                 goalReached = true;
@@ -512,6 +523,7 @@
         state.general.totalGoal = parseBrazilianNumber(document.getElementById('total-goal').value);
         state.general.defaultContribution = parseBrazilianNumber(document.getElementById('default-contribution').value);
         state.general.startDate = document.getElementById('projection-start-date').value || '';
+        state.general.inflationRate = parseBrazilianNumber(document.getElementById('inflation-rate').value);
         state.general.showUntilGoal = document.getElementById('show-until-goal').checked;
         state.general.darkMode = document.documentElement.classList.contains('dark');
         
@@ -567,13 +579,14 @@
     function exportToCSV() {
         const projection = calculateProjection();
         let csvContent = "data:text/csv;charset=utf-8,";
-        const headers = ["Mês", ...state.banks.flatMap(b => [`${b.name} Saldo Início`, `${b.name} Aporte`, `${b.name} Rendimento (%)`, `${b.name} Saldo Final`]), "Saldo Total"];
+        const headers = ["Mês", ...state.banks.flatMap(b => [`${b.name} Saldo Início`, `${b.name} Aporte`, `${b.name} Rendimento (%)`, `${b.name} Saldo Final`]), "Saldo Total", "Saldo Real"];
         csvContent += headers.join(",") + "\r\n";
         projection.results.forEach(row => {
             const rowData = [
                 `"${row.date}"`,
                 ...row.banks.flatMap(b => [b.startBalance.toFixed(2), b.contribution.toFixed(2), b.yieldRate.toFixed(2), b.endBalance.toFixed(2)]),
-                row.totalBalance.toFixed(2)
+                row.totalBalance.toFixed(2),
+                row.realBalance.toFixed(2)
             ];
             csvContent += rowData.join(",") + "\r\n";
         });
@@ -685,7 +698,7 @@
             }
         });
 
-        ['total-goal', 'default-contribution', 'projection-start-date', 'show-until-goal'].forEach(id => {
+        ['total-goal', 'default-contribution', 'projection-start-date', 'inflation-rate', 'show-until-goal'].forEach(id => {
             document.getElementById(id).addEventListener('change', () => {
                 updateStateFromInputs();
                 renderTableAndCharts();
