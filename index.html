@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
-  <title>Projeção Financeira Sincronizada</title>
+  <title>Projeção Financeira v2.0</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js para os gráficos -->
@@ -472,7 +472,7 @@
                 const startBalance = balances[j];
                 let contribution = contributionOverrides[j];
 
-                if (contribution === undefined) {
+                if (contribution === undefined || contribution === null) {
                      contribution = 0;
                      if(currentDefaultContribution > 0) {
                         let contributionTargetIndex = -1;
@@ -505,14 +505,16 @@
                 totalContributed += monthlyContributionTotal;
             } else {
                  contributionOverrides.forEach((c) => {
-                     if(c !== undefined) totalContributed += c;
+                     if(c !== undefined && c !== null) totalContributed += c;
                  });
             }
 
             totalInterest += bankDataForMonth.reduce((sum, b) => sum + b.yieldAmount, 0);
             
             const totalBalance = balances.reduce((sum, b) => sum + b, 0);
-            accumulatedInflation *= (1 + monthlyInflationRate);
+            if (i > 0) { // Não aplica inflação no saldo inicial
+                accumulatedInflation *= (1 + monthlyInflationRate);
+            }
             const realBalance = totalBalance / accumulatedInflation;
             
             const monthResult = { date: currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), monthStr, banks: bankDataForMonth, totalBalance, realBalance, isGoalMonth: false };
@@ -656,6 +658,14 @@
         if (!tableInputData[monthIdx][arrayField]) {
             tableInputData[monthIdx][arrayField] = [];
         }
+        
+        // CORREÇÃO: Preenche os espaços vazios com `null` para evitar o erro de `undefined` no Firebase.
+        for (let i = 0; i < (state.banks || []).length; i++) {
+            if (tableInputData[monthIdx][arrayField][i] === undefined) {
+                tableInputData[monthIdx][arrayField][i] = null;
+            }
+        }
+
         tableInputData[monthIdx][arrayField][bankIdx] = value;
 
         renderTableAndCharts();
