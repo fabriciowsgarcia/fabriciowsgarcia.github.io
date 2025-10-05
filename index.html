@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
-  <title>Projeção Financeira V3.0</title>
+  <title>Projeção Financeira Sincronizada</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js para os gráficos -->
@@ -13,9 +13,6 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     body { font-family: 'Inter', sans-serif; }
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    /* input[type="number"] { -moz-appearance: textfield; } */ /* Removido para compatibilidade com inputs de texto */
     .editable-cell input { background: transparent; border: 1px solid transparent; padding: 0; text-align: right; width: 100%; min-width: 60px; box-sizing: border-box; transition: border-color 0.2s; }
     .editable-cell input:focus { outline: none; border-color: #a78bfa; }
     #app-container.disabled, #app-container.loading { opacity: 0.5; pointer-events: none; }
@@ -115,10 +112,12 @@
                 </div>
             </div>
             <div>
-                <h2 class="text-2xl font-bold mb-4 text-purple-800">Eventos Financeiros</h2>
+                <h2 class="text-2xl font-bold mb-4 text-purple-800">Eventos Financeiros Futuros</h2>
                 <div class="bg-white p-6 rounded-xl shadow-lg border space-y-4">
                     <div id="events-container" class="space-y-3"></div>
                     <button id="add-event-button" class="mt-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition duration-300">+ Adicionar Evento</button>
+                    <div id="past-events-toggle-container" class="mt-4 border-t pt-4"></div>
+                    <div id="past-events-container" class="hidden space-y-3 opacity-70"></div>
                 </div>
             </div>
         </div>
@@ -256,8 +255,18 @@
     
     function renderEvents() {
         const container = document.getElementById('events-container');
+        const pastContainer = document.getElementById('past-events-container');
+        const toggleContainer = document.getElementById('past-events-toggle-container');
+        
         const bankOptions = (state.banks || []).map(b => `<option value="${b.id}">${b.name}</option>`).join('') || `<option>Crie um banco primeiro</option>`;
-        container.innerHTML = (state.events || []).map((event) => {
+        
+        const currentMonthStr = new Date().toISOString().slice(0, 7);
+        const allEvents = (state.events || []).sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        const futureEvents = allEvents.filter(e => e.date >= currentMonthStr);
+        const pastEvents = allEvents.filter(e => e.date < currentMonthStr);
+
+        const renderEventItem = (event) => {
             const isContributionChange = event.type === 'contribution_change';
             const selectedBankId = event.bankId || (state.banks.length > 0 ? state.banks[0].id : '');
             return `
@@ -273,8 +282,17 @@
                     ${(state.banks || []).map(b => `<option value="${b.id}" ${b.id == selectedBankId ? 'selected' : ''}>${b.name}</option>`).join('')}
                 </select>
                 <button data-id="${event.id}" class="remove-event-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 p-2">- Remover</button>
-            </div>
-        `}).join('');
+            </div>`;
+        };
+        
+        container.innerHTML = futureEvents.map(renderEventItem).join('');
+        pastContainer.innerHTML = pastEvents.map(renderEventItem).join('');
+
+        if (pastEvents.length > 0) {
+            toggleContainer.innerHTML = `<button id="toggle-past-events" class="text-sm text-purple-600 hover:underline">Mostrar ${pastEvents.length} Eventos Anteriores</button>`;
+        } else {
+            toggleContainer.innerHTML = '';
+        }
     }
     
     function renderCurrentMonthPanel(projection) {
@@ -493,7 +511,7 @@
                      if(currentDefaultContribution > 0) {
                         let contributionTargetIndex = -1;
                         for(let k=0; k < state.banks.length; k++) {
-                            if((state.banks[k].limit === null || balances[k] < state.banks[k].limit) && contributionOverrides[k] === undefined) {
+                            if((state.banks[k].limit === null || balances[k] < state.banks[k].limit) && (contributionOverrides[k] === undefined || contributionOverrides[k] === null)) {
                                 contributionTargetIndex = k;
                                 break;
                             }
@@ -514,7 +532,13 @@
                 bankDataForMonth.push({ startBalance, contribution, yieldRate, yieldAmount, endBalance });
             });
 
-            totalContributed += monthlyContributionTotal;
+            if (contributionOverrides.length === 0) {
+                totalContributed += monthlyContributionTotal;
+            } else {
+                 contributionOverrides.forEach((c) => {
+                     if(c !== undefined && c !== null) totalContributed += c;
+                 });
+            }
 
             totalInterest += bankDataForMonth.reduce((sum, b) => sum + b.yieldAmount, 0);
             
@@ -747,6 +771,14 @@
                 state.events = state.events.filter(ev => ev.id !== eventId);
                 renderEvents();
                 renderTableAndCharts();
+            }
+        });
+        
+        document.getElementById('past-events-toggle-container').addEventListener('click', e => {
+            if (e.target.id === 'toggle-past-events') {
+                const pastContainer = document.getElementById('past-events-container');
+                pastContainer.classList.toggle('hidden');
+                e.target.textContent = pastContainer.classList.contains('hidden') ? `Mostrar ${pastContainer.children.length} Eventos Anteriores` : 'Ocultar Eventos Anteriores';
             }
         });
 
