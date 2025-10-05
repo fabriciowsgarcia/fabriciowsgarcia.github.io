@@ -499,30 +499,29 @@
             const contributionOverrides = monthInputs.contributions ?? [];
             const yieldRateOverrides = monthInputs.yieldRates ?? [];
 
-            let monthlyContributionTotal = 0;
             const bankDataForMonth = [];
             
             (state.banks || []).forEach((bank, j) => {
                 const startBalance = balances[j];
                 let contribution = contributionOverrides[j];
-
+                
                 if (contribution === undefined || contribution === null) {
-                     contribution = 0;
-                     if(currentDefaultContribution > 0) {
+                    contribution = 0;
+                    if (currentDefaultContribution > 0) {
                         let contributionTargetIndex = -1;
-                        for(let k=0; k < state.banks.length; k++) {
-                            if((state.banks[k].limit === null || balances[k] < state.banks[k].limit) && (contributionOverrides[k] === undefined || contributionOverrides[k] === null)) {
+                        for (let k = 0; k < state.banks.length; k++) {
+                            if ((state.banks[k].limit === null || balances[k] < state.banks[k].limit) && (contributionOverrides[k] === undefined || contributionOverrides[k] === null)) {
                                 contributionTargetIndex = k;
                                 break;
                             }
                         }
                         if (j === contributionTargetIndex) {
-                           contribution = currentDefaultContribution;
+                            contribution = currentDefaultContribution;
                         }
-                     }
+                    }
                 }
                 
-                monthlyContributionTotal += contribution;
+                totalContributed += contribution;
                 
                 const yieldRate = yieldRateOverrides[j] ?? bank.yieldRate;
                 const yieldAmount = (startBalance + contribution) * (yieldRate / 100);
@@ -531,14 +530,6 @@
                 balances[j] = endBalance;
                 bankDataForMonth.push({ startBalance, contribution, yieldRate, yieldAmount, endBalance });
             });
-
-            if (contributionOverrides.length === 0) {
-                totalContributed += monthlyContributionTotal;
-            } else {
-                 contributionOverrides.forEach((c) => {
-                     if(c !== undefined && c !== null) totalContributed += c;
-                 });
-            }
 
             totalInterest += bankDataForMonth.reduce((sum, b) => sum + b.yieldAmount, 0);
             
