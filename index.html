@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
-  <title>Projeção Financeira v3</title>
+  <title>Projeção Financeira Sincronizada</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js para os gráficos -->
@@ -500,37 +500,46 @@
             const yieldRateOverrides = monthInputs.yieldRates ?? [];
 
             const bankDataForMonth = [];
-            
+            let monthlyContributionTotal = 0;
+
             (state.banks || []).forEach((bank, j) => {
-                const startBalance = balances[j];
                 let contribution = contributionOverrides[j];
                 
                 if (contribution === undefined || contribution === null) {
                     contribution = 0;
-                    if (currentDefaultContribution > 0) {
-                        let contributionTargetIndex = -1;
-                        for (let k = 0; k < state.banks.length; k++) {
-                            if ((state.banks[k].limit === null || balances[k] < state.banks[k].limit) && (contributionOverrides[k] === undefined || contributionOverrides[k] === null)) {
-                                contributionTargetIndex = k;
-                                break;
-                            }
-                        }
-                        if (j === contributionTargetIndex) {
-                            contribution = currentDefaultContribution;
-                        }
-                    }
                 }
                 
-                totalContributed += contribution;
+                bankDataForMonth.push({ contribution });
+            });
+            
+            let remainingDefaultContribution = currentDefaultContribution;
+            if (contributionOverrides.length === 0 && remainingDefaultContribution > 0) {
+                 for (let k = 0; k < state.banks.length; k++) {
+                    if (state.banks[k].limit === null || balances[k] < state.banks[k].limit) {
+                        bankDataForMonth[k].contribution = remainingDefaultContribution;
+                        remainingDefaultContribution = 0;
+                        break;
+                    }
+                }
+            }
+
+
+            (state.banks || []).forEach((bank, j) => {
+                const startBalance = balances[j];
+                const contribution = bankDataForMonth[j].contribution || 0;
+                
+                monthlyContributionTotal += contribution;
                 
                 const yieldRate = yieldRateOverrides[j] ?? bank.yieldRate;
                 const yieldAmount = (startBalance + contribution) * (yieldRate / 100);
                 const endBalance = startBalance + contribution + yieldAmount;
                 
                 balances[j] = endBalance;
-                bankDataForMonth.push({ startBalance, contribution, yieldRate, yieldAmount, endBalance });
+                
+                bankDataForMonth[j] = { ...bankDataForMonth[j], startBalance, yieldRate, yieldAmount, endBalance };
             });
 
+            totalContributed += monthlyContributionTotal;
             totalInterest += bankDataForMonth.reduce((sum, b) => sum + b.yieldAmount, 0);
             
             const totalBalance = balances.reduce((sum, b) => sum + b, 0);
@@ -794,5 +803,4 @@
   </script>
 </body>
 </html>
-
 
