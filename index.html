@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
   <title>Património Pro | Gestão Financeira</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -332,7 +332,10 @@
         renderGeneralInputs();
         renderEvents();
         renderTableAndCharts();
-        lucide.createIcons();
+        // Verifica se a biblioteca lucide existe antes de chamar
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
 
     function updateTheme() {
@@ -369,7 +372,7 @@
                 </div>
             </div>
         `).join('');
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function renderGeneralInputs() {
@@ -421,7 +424,7 @@
         } else {
             toggleContainer.innerHTML = '';
         }
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function renderCurrentMonthPanel(projection) {
@@ -463,7 +466,7 @@
                 </div>
             `;
         }
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function renderTable(projection) {
@@ -553,7 +556,7 @@
             finalSummaryText.innerText = "Com o ritmo atual, o seu objetivo ainda não foi alcançado no período simulado. Tente aumentar o aporte mensal ou buscar rendimentos ligeiramente superiores.";
             detailsContainer.innerHTML = '';
         }
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function renderTableAndCharts() {
@@ -808,7 +811,7 @@
                     state = getDefaultState();
                     renderApp();
                 }
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             });
         });
 
@@ -856,7 +859,7 @@
                 const past = document.getElementById('past-events-container');
                 past.classList.toggle('hidden');
                 e.target.closest('#toggle-past-events').innerHTML = past.classList.contains('hidden') ? `<i data-lucide="history" class="w-4 h-4"></i> Mostrar Eventos Anteriores` : `<i data-lucide="eye-off" class="w-4 h-4"></i> Ocultar Eventos Anteriores`;
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
         });
 
