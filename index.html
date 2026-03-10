@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Lucide Icons (Substituto moderno para FontAwesome) -->
+  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -114,7 +114,7 @@
             </div>
         </section>
 
-        <!-- CONFIGURAÇÕES RECOLHÍVEIS (ACORDEÃO) -->
+        <!-- CONFIGURAÇÕES RECOLHÍVEIS -->
         <section class="grid grid-cols-1 xl:grid-cols-3 gap-8">
             <div class="xl:col-span-2 space-y-6">
                 <!-- GRÁFICO PRINCIPAL -->
@@ -279,6 +279,10 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    /* AVISO DE SEGURANÇA: A chave de API abaixo é pública por necessidade do Firebase Web.
+       Certifique-se de configurar "Restrições de Aplicativo" (HTTP Referrers) no Console do Google Cloud 
+       para permitir apenas o seu domínio (fabriciowsgarcia.github.io).
+    */
     const firebaseConfig = {
       apiKey: "AIzaSyCxCoLySMztPI2ZEirFIX8lzTziytdAtLw",
       authDomain: "projecao-financeira-app.firebaseapp.com",
@@ -756,7 +760,7 @@
         const newEvents = [];
         document.querySelectorAll('#events-container .event-entry, #past-events-container .event-entry').forEach(el => {
              newEvents.push({
-                 id: parseInt(el.dataset.id),
+                 id: parseInt(el.dataset.id, 10),
                  type: el.querySelector('[data-field="type"]').value,
                  date: el.querySelector('[data-field="date"]').value,
                  amount: parseBrazilianNumber(el.querySelector('[data-field="amount"]').value),
