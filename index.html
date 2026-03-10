@@ -4,8 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
-  <title>Património Pro | Gestão Financeira</title>
+  <!-- CSP ATUALIZADA: Adicionado img-src para fotos do Google e script-src para unpkg -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
+  <title>Patrimônio Pro | Gestão Financeira</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js -->
@@ -91,9 +92,10 @@
                 <div class="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200 dark:shadow-none">
                     <i data-lucide="trending-up" class="w-8 h-8"></i>
                 </div>
-                <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Património <span class="text-indigo-600">Pro</span></h1>
+                <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Patrimônio <span class="text-indigo-600">Pro</span></h1>
             </div>
-            <p class="text-slate-500 dark:text-slate-400 mt-1 ml-14">Planeamento financeiro inteligente e sincronizado.</p>
+            <!-- CORREÇÃO: "Planejamento" em vez de "Planeamento" -->
+            <p class="text-slate-500 dark:text-slate-400 mt-1 ml-14">Planejamento financeiro inteligente e sincronizado.</p>
         </div>
         
         <div class="flex items-center gap-3 self-end">
@@ -279,10 +281,6 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    /* AVISO DE SEGURANÇA: A chave de API abaixo é pública por necessidade do Firebase Web.
-       Certifique-se de configurar "Restrições de Aplicativo" (HTTP Referrers) no Console do Google Cloud 
-       para permitir apenas o seu domínio (fabriciowsgarcia.github.io).
-    */
     const firebaseConfig = {
       apiKey: "AIzaSyCxCoLySMztPI2ZEirFIX8lzTziytdAtLw",
       authDomain: "projecao-financeira-app.firebaseapp.com",
@@ -332,7 +330,6 @@
         renderGeneralInputs();
         renderEvents();
         renderTableAndCharts();
-        // Verifica se a biblioteca lucide existe antes de chamar
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
@@ -480,7 +477,7 @@
                     <th colspan="4" class="px-4 py-3 text-center text-xs font-bold uppercase border-b border-r dark:border-slate-700">${bank.name}</th>
                 `).join('')}
                 <th rowspan="2" class="px-4 py-4 text-right text-xs font-bold uppercase border-r dark:border-slate-700">Total Nominal</th>
-                <th rowspan="2" class="px-4 py-4 text-right text-xs font-bold uppercase">Património Real</th>
+                <th rowspan="2" class="px-4 py-4 text-right text-xs font-bold uppercase">Patrimônio Real</th>
             </tr>
             <tr class="bg-slate-50 dark:bg-slate-900">
                 ${(state.banks || []).map(() => `
@@ -540,7 +537,7 @@
         if (projection.goalReached) {
             const { years, months, finalTotal } = projection.goalInfo;
             finalSummaryTitle.innerText = "Objetivo Conquistado!";
-            finalSummaryText.innerHTML = `Parabéns! Irá atingir a sua meta de <strong>${formatCurrency(state.general.totalGoal)}</strong> em exatos <strong>${years} anos e ${months} meses</strong>. O seu património terá um poder de compra significativo.`;
+            finalSummaryText.innerHTML = `Parabéns! Irá atingir a sua meta de <strong>${formatCurrency(state.general.totalGoal)}</strong> em exatos <strong>${years} anos e ${months} meses</strong>. O seu patrimônio terá um poder de compra significativo.`;
             detailsContainer.innerHTML = `
                 <div class="bg-white/10 p-4 rounded-2xl">
                     <p class="text-[10px] font-bold opacity-60 uppercase">Aportes Totais</p>
@@ -586,7 +583,7 @@
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Património Nominal',
+                        label: 'Patrimônio Nominal',
                         data: nominalData,
                         borderColor: '#6366f1',
                         backgroundColor: 'rgba(99, 102, 241, 0.05)',
@@ -779,7 +776,7 @@
         const docRef = doc(db, "users", currentUser.uid);
         const statusMessage = document.getElementById('status-message');
         try {
-            statusMessage.textContent = 'A sincronizar com a nuvem...';
+            statusMessage.textContent = 'Sincronizando com a nuvem...';
             await setDoc(docRef, { ...state, monthlyEdits: tableInputData });
             statusMessage.textContent = 'Dados salvos com sucesso!';
             setTimeout(() => statusMessage.textContent = '', 3000);
@@ -791,11 +788,12 @@
             onAuthStateChanged(auth, user => {
                 if (user) {
                     currentUser = user;
+                    // CORREÇÃO: Fallback para foto de perfil e ajuste de texto (Usuário)
                     document.getElementById('auth-container').innerHTML = `
                         <div class="flex items-center gap-3 bg-white dark:bg-slate-800 p-1.5 pr-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <img src="${user.photoURL}" class="w-8 h-8 rounded-xl">
+                            <img src="${user.photoURL}" class="w-8 h-8 rounded-xl object-cover" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png'">
                             <div class="hidden sm:block">
-                                <p class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Utilizador</p>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Usuário</p>
                                 <p class="text-xs font-bold leading-none">${user.displayName}</p>
                             </div>
                             <button id="logout-button" class="ml-2 text-slate-400 hover:text-red-500 transition-colors">
