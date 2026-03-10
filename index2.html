@@ -1,1 +1,805 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="">
 
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
+  <title>Projeção Financeira Sincronizada</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js para os gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .editable-cell input { background: transparent; border: 1px solid transparent; padding: 0; text-align: right; width: 100%; min-width: 60px; box-sizing: border-box; transition: border-color 0.2s; }
+    .editable-cell input:focus { outline: none; border-color: #a78bfa; }
+    #app-container.disabled, #app-container.loading { opacity: 0.5; pointer-events: none; }
+    /* Estilos para o Modo Escuro */
+    .dark body { background-color: #111827; color: #d1d5db; }
+    .dark .bg-white { background-color: #1f2937; border-color: #4b5563; }
+    .dark .bg-gray-50 { background-color: #374151; }
+    .dark .bg-purple-50 { background-color: #3730a3; border-color: #4338ca; }
+    .dark .text-gray-800, .dark .text-gray-700, .dark .text-gray-900 { color: #f9fafb; }
+    .dark .text-gray-500, .dark .text-gray-600 { color: #9ca3af; }
+    .dark .border, .dark .divide-y, .dark .border-b, .dark .border-r { border-color: #4b5563 !important; }
+    .dark input, .dark select { background-color: #374151; color: #f9fafb; border-color: #4b5563; }
+    .dark .editable-cell input:focus { background-color: #4b5563; }
+    .dark .bg-purple-100 { background-color: #312e81; }
+    .dark .bg-green-100 { background-color: #047857; }
+    .dark .bg-blue-100 { background-color: #1e3a8a; }
+    .dark .bg-green-50 { background-color: #064e3b; border-color: #059669; }
+    .dark .text-purple-800 { color: #a78bfa; }
+    .dark .text-blue-600 { color: #60a5fa; }
+    .dark .text-green-600 { color: #34d399; }
+    .dark .text-green-700 { color: #6ee7b7; }
+    .dark .text-orange-700 { color: #fb923c; }
+    .tooltip { position: relative; display: inline-block; cursor: help; }
+    .tooltip .tooltiptext { visibility: hidden; width: 240px; background-color: #555; color: #fff; text-align: left; padding: 8px; border-radius: 6px; position: absolute; z-index: 10; bottom: 125%; left: 50%; margin-left: -120px; opacity: 0; transition: opacity 0.3s; font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
+    .tooltip .tooltiptext::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #555 transparent transparent transparent; }
+    .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+  </style>
+</head>
+
+<body class="min-h-screen p-4 sm:p-8">
+  <div class="max-w-7xl mx-auto bg-white p-6 sm:p-10 rounded-3xl shadow-xl border border-gray-200">
+    
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 border-b pb-4">
+        <div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-center sm:text-left text-purple-800">Projeção Financeira</h1>
+            <p class="text-center sm:text-left text-gray-500">Sincronizada na nuvem com Firebase.</p>
+        </div>
+        <div class="flex items-center gap-4 mt-4 sm:mt-0">
+            <button id="dark-mode-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800">🌙</button>
+            <div id="auth-container"></div>
+        </div>
+    </div>
+    
+    <div id="app-container" class="disabled">
+        <div class="space-y-6 bg-purple-50 p-6 rounded-2xl shadow-inner border border-purple-200 mb-8">
+          <div>
+            <h2 class="text-xl font-bold mb-3 text-purple-800">Bancos e Contas</h2>
+            <div id="banks-container" class="space-y-3"></div>
+            <button id="add-bank-button" class="mt-4 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition duration-300">+ Adicionar Banco</button>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold mb-3 text-purple-800">Configurações Gerais</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div class="flex flex-col p-4 bg-white rounded-lg border">
+                <label for="total-goal" class="text-sm font-semibold text-gray-600 mb-1">Meta Financeira:</label>
+                <div class="flex items-center">
+                  <span class="text-lg font-bold text-blue-600">R$</span>
+                  <input type="text" id="total-goal" class="text-lg font-bold text-blue-600 text-left bg-transparent border-none focus:outline-none w-full">
+                </div>
+              </div>
+              <div class="flex flex-col p-4 bg-white rounded-lg border">
+                <label for="default-contribution" class="text-sm font-semibold text-gray-600 mb-1">Aporte Mensal Padrão:</label>
+                <div class="flex items-center">
+                  <span class="text-lg font-bold text-green-600">R$</span>
+                  <input type="text" id="default-contribution" class="text-lg font-bold text-green-600 text-left bg-transparent border-none focus:outline-none w-full">
+                </div>
+              </div>
+              <div class="flex flex-col p-4 bg-white rounded-lg border">
+                <label for="projection-start-date" class="text-sm font-semibold text-gray-600 mb-1">Início da Projeção:</label>
+                <input type="month" id="projection-start-date" class="text-lg font-bold text-gray-700 bg-transparent border-none focus:outline-none w-full">
+              </div>
+              <div class="flex flex-col p-4 bg-white rounded-lg border">
+                <label for="inflation-rate" class="text-sm font-semibold text-gray-600 mb-1">Inflação Anual Média (%):</label>
+                <input type="text" id="inflation-rate" class="text-lg font-bold text-gray-700 bg-transparent border-none focus:outline-none w-full">
+              </div>
+              <div class="flex flex-col justify-center p-4 bg-white rounded-lg border">
+                <label for="show-until-goal" class="text-sm font-semibold text-gray-600 mb-2">Limitar projeção à meta?</label>
+                <div class="flex items-center">
+                    <input type="checkbox" id="show-until-goal" class="h-6 w-6 rounded border-gray-300 text-purple-600 shadow-sm focus:ring-purple-500">
+                    <span class="ml-2 text-gray-700">Sim</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold mb-4 text-purple-800">Resumo do Mês Atual</h2>
+            <div id="current-month-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center"></div>
+        </div>
+
+        <div class="space-y-8 mb-8">
+            <div>
+                <h2 class="text-2xl font-bold mb-4 text-purple-800">Evolução do Património</h2>
+                <div class="bg-white p-4 rounded-xl shadow-lg border">
+                    <canvas id="evolution-chart"></canvas>
+                </div>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold mb-4 text-purple-800">Eventos Financeiros Futuros</h2>
+                <div class="bg-white p-6 rounded-xl shadow-lg border space-y-4">
+                    <div id="events-container" class="space-y-3"></div>
+                    <button id="add-event-button" class="mt-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition duration-300">+ Adicionar Evento</button>
+                    <div id="past-events-toggle-container" class="mt-4 border-t pt-4"></div>
+                    <div id="past-events-container" class="hidden space-y-3 opacity-70"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
+          <button id="recalculate-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-purple-600 text-white font-bold rounded-full shadow-lg hover:bg-purple-700">Recalcular</button>
+          <button id="save-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-gray-500 text-white font-bold rounded-full shadow-lg hover:bg-gray-600">Salvar na Nuvem</button>
+          <button id="export-csv-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-green-600 text-white font-bold rounded-full shadow-lg hover:bg-green-700">Exportar CSV</button>
+          <button id="reset-button" class="w-full sm:w-auto flex-grow flex items-center justify-center gap-2 px-8 py-4 bg-red-500 text-white font-bold rounded-full shadow-lg hover:bg-red-600">Resetar</button>
+        </div>
+
+        <div id="status-message" class="text-center text-sm font-medium text-gray-600 mb-4"></div>
+
+        <div class="overflow-x-auto rounded-xl shadow-lg border border-gray-300">
+          <table class="min-w-full divide-y divide-gray-300 bg-white">
+            <thead id="projection-table-head" class="bg-purple-100"></thead>
+            <tbody id="projection-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+
+        <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center bg-green-50 p-6 rounded-2xl shadow-inner border border-green-200">
+            <div class="text-center text-lg sm:text-xl font-bold">
+              <p class="text-gray-700" id="final-summary"></p>
+              <div id="summary-details" class="mt-4 text-base font-normal"></div>
+            </div>
+            <div class="w-full max-w-sm mx-auto">
+                <canvas id="summary-pie-chart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-10 text-sm text-gray-500">
+      <p>Powered by: Fabrício Garcia</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCxCoLySMztPI2ZEirFIX8lzTziytdAtLw",
+      authDomain: "projecao-financeira-app.firebaseapp.com",
+      projectId: "projecao-financeira-app",
+      storageBucket: "projecao-financeira-app.firebasestorage.app",
+      messagingSenderId: "761180323629",
+      appId: "1:761180323629:web:9d6945b83554f3ce9b9da4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    let state = {};
+    let tableInputData = [];
+    let currentUser = null;
+    let evolutionChartInstance = null;
+    let summaryPieChartInstance = null;
+
+    const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+    const formatNumberToInput = (value) => (typeof value === 'number' ? value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
+    const parseBrazilianNumber = (stringValue) => {
+        if (typeof stringValue !== 'string' || !stringValue) return 0;
+        const sanitized = stringValue.replace(/\./g, '').replace(',', '.');
+        return parseFloat(sanitized) || 0;
+    };
+
+    function getDefaultState() {
+        return {
+            banks: [{ id: Date.now(), name: 'Exemplo', balance: 50000, yieldRate: 1.0, limit: null }],
+            events: [],
+            general: {
+                totalGoal: 1000000,
+                defaultContribution: 6000,
+                startDate: new Date().toISOString().slice(0, 7),
+                showUntilGoal: false,
+                darkMode: false,
+                inflationRate: 4.0
+            }
+        };
+    }
+    
+    const authContainer = document.getElementById('auth-container');
+    const appContainer = document.getElementById('app-container');
+
+    function renderApp() {
+        updateTheme();
+        renderBankInputs();
+        renderGeneralInputs();
+        renderEvents();
+        renderTableAndCharts();
+    }
+
+    function renderTableAndCharts() {
+        if (!currentUser) return;
+        const projection = calculateProjection();
+        renderCurrentMonthPanel(projection);
+        renderTable(projection);
+        renderEvolutionChart(projection);
+        renderSummaryChart(projection);
+    }
+    
+    function updateTheme() {
+        if (state.general.darkMode) {
+            document.documentElement.classList.add('dark');
+            document.getElementById('dark-mode-toggle').textContent = '☀️';
+        } else {
+            document.documentElement.classList.remove('dark');
+            document.getElementById('dark-mode-toggle').textContent = '🌙';
+        }
+    }
+
+    function renderBankInputs() {
+        const container = document.getElementById('banks-container');
+        container.innerHTML = (state.banks || []).map((bank) => `
+            <div class="bank-entry grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 bg-white rounded-lg border" data-id="${bank.id}">
+                <input type="text" value="${bank.name}" data-field="name" class="bank-input col-span-1 border-gray-300 rounded-md">
+                <input type="text" value="${formatNumberToInput(bank.balance)}" data-field="balance" class="bank-input text-right border-gray-300 rounded-md">
+                <input type="text" value="${formatNumberToInput(bank.yieldRate)}" data-field="yieldRate" class="bank-input text-right border-gray-300 rounded-md">
+                <input type="text" value="${bank.limit ? formatNumberToInput(bank.limit) : ''}" data-field="limit" placeholder="Opcional" class="bank-input text-right border-gray-300 rounded-md">
+                <button data-id="${bank.id}" class="remove-bank-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 p-2">- Remover</button>
+            </div>
+        `).join('');
+    }
+
+    function renderGeneralInputs() {
+        document.getElementById('total-goal').value = formatNumberToInput(state.general.totalGoal);
+        document.getElementById('default-contribution').value = formatNumberToInput(state.general.defaultContribution);
+        document.getElementById('projection-start-date').value = state.general.startDate || '';
+        document.getElementById('inflation-rate').value = formatNumberToInput(state.general.inflationRate);
+        document.getElementById('show-until-goal').checked = state.general.showUntilGoal;
+    }
+    
+    function renderEvents() {
+        const container = document.getElementById('events-container');
+        const pastContainer = document.getElementById('past-events-container');
+        const toggleContainer = document.getElementById('past-events-toggle-container');
+        
+        const bankOptions = (state.banks || []).map(b => `<option value="${b.id}">${b.name}</option>`).join('') || `<option>Crie um banco primeiro</option>`;
+        
+        const currentMonthStr = new Date().toISOString().slice(0, 7);
+        const allEvents = (state.events || []).sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        const futureEvents = allEvents.filter(e => e.date >= currentMonthStr);
+        const pastEvents = allEvents.filter(e => e.date < currentMonthStr);
+
+        const renderEventItem = (event) => {
+            const isContributionChange = event.type === 'contribution_change';
+            const selectedBankId = event.bankId || (state.banks.length > 0 ? state.banks[0].id : '');
+            return `
+            <div class="event-entry grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border" data-id="${event.id}">
+                <select data-field="type" class="event-input border-gray-300 rounded-md">
+                    <option value="deposit" ${event.type === 'deposit' ? 'selected' : ''}>Aporte Extra</option>
+                    <option value="withdrawal" ${event.type === 'withdrawal' ? 'selected' : ''}>Retirada</option>
+                    <option value="contribution_change" ${isContributionChange ? 'selected' : ''}>Mudar Aporte Padrão</option>
+                </select>
+                <input type="month" value="${event.date}" data-field="date" class="event-input border-gray-300 rounded-md">
+                <input type="text" value="${formatNumberToInput(event.amount)}" data-field="amount" placeholder="Valor" class="event-input text-right border-gray-300 rounded-md">
+                <select data-field="bankId" class="event-input border-gray-300 rounded-md ${isContributionChange ? 'hidden' : ''}">
+                    ${(state.banks || []).map(b => `<option value="${b.id}" ${b.id == selectedBankId ? 'selected' : ''}>${b.name}</option>`).join('')}
+                </select>
+                <button data-id="${event.id}" class="remove-event-button flex justify-center items-center bg-red-500 text-white rounded-md hover:bg-red-600 p-2">- Remover</button>
+            </div>`;
+        };
+        
+        container.innerHTML = futureEvents.map(renderEventItem).join('');
+        pastContainer.innerHTML = pastEvents.map(renderEventItem).join('');
+
+        if (pastEvents.length > 0) {
+            toggleContainer.innerHTML = `<button id="toggle-past-events" class="text-sm text-purple-600 hover:underline">Mostrar ${pastEvents.length} Eventos Anteriores</button>`;
+        } else {
+            toggleContainer.innerHTML = '';
+        }
+    }
+    
+    function renderCurrentMonthPanel(projection) {
+        const container = document.getElementById('current-month-summary');
+        const currentMonthStr = new Date().toISOString().slice(0, 7);
+        const currentMonthData = projection.results.find(r => r.monthStr === currentMonthStr);
+
+        if (currentMonthData) {
+            const totalContribution = currentMonthData.banks.reduce((sum, b) => sum + b.contribution, 0);
+            const totalInterest = currentMonthData.banks.reduce((sum, b) => sum + b.yieldAmount, 0);
+
+            container.innerHTML = `
+                <div class="bg-white p-4 rounded-lg shadow border">
+                    <p class="text-sm text-gray-500">Total Aportado no Mês</p>
+                    <p class="text-2xl font-bold text-green-600">${formatCurrency(totalContribution)}</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow border">
+                    <p class="text-sm text-gray-500">Rendimento Gerado</p>
+                    <p class="text-2xl font-bold text-purple-600">${formatCurrency(totalInterest)}</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow border">
+                    <p class="text-sm text-gray-500">Saldo Final do Mês</p>
+                    <p class="text-2xl font-bold text-blue-600">${formatCurrency(currentMonthData.totalBalance)}</p>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `<p class="text-center text-gray-500 col-span-3">O mês atual não está na projeção.</p>`;
+        }
+    }
+    
+    function renderTable(projection) {
+        const thead = document.getElementById('projection-table-head');
+        const tbody = document.getElementById('projection-table-body');
+        const finalSummary = document.getElementById('final-summary');
+        const summaryDetails = document.getElementById('summary-details');
+
+        let headerHtml = '<tr><th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider border-r">Mês</th>';
+        (state.banks || []).forEach(bank => {
+            headerHtml += `<th colspan="4" class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-b border-r">${bank.name}</th>`;
+        });
+        headerHtml += '<th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider border-r">Saldo Total</th><th rowspan="2" class="px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider">Saldo Real (Ajustado)</th></tr><tr>';
+        (state.banks || []).forEach(() => {
+            headerHtml += `
+                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Saldo Início</th>
+                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Aporte</th>
+                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Rendimento (%)</th>
+                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider border-r">Saldo Final</th>
+            `;
+        });
+        headerHtml += '</tr>';
+        thead.innerHTML = headerHtml;
+
+        let resultsToRender = projection.results;
+        if (state.general.showUntilGoal && projection.goalReached) {
+            resultsToRender = projection.results.slice(0, projection.totalMonthsToGoal);
+        }
+
+        const currentMonthStr = new Date().toISOString().slice(0, 7);
+        tbody.innerHTML = resultsToRender.map((month, monthIndex) => {
+            const isCurrentMonth = month.monthStr === currentMonthStr;
+            const hasEvents = month.events.length > 0;
+            const eventsTooltipText = hasEvents ? month.events.map(e => {
+                const eventTypeName = e.type === 'deposit' ? 'Aporte Extra' : e.type === 'withdrawal' ? 'Retirada' : 'Muda Aporte Padrão';
+                return `• ${eventTypeName}: ${formatCurrency(e.amount)}`;
+            }).join('\n') : '';
+
+            let rowHtml = `<tr class="${month.isGoalMonth ? 'bg-green-100' : ''} ${isCurrentMonth ? 'bg-blue-100 dark:bg-blue-900' : ''}">
+                <td class="px-3 py-3 text-sm text-center border-r">
+                    <div class="flex items-center justify-center gap-2">
+                        <span>${month.date}</span>
+                        ${hasEvents ? `
+                        <div class="tooltip">
+                            <span>🗓️</span>
+                            <span class="tooltiptext">${eventsTooltipText}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </td>`;
+            
+            month.banks.forEach((bankData, bankIndex) => {
+                rowHtml += `
+                    <td class="px-3 py-3 text-sm text-right border-r">${formatCurrency(bankData.startBalance)}</td>
+                    <td class="px-3 py-3 text-sm text-right text-green-600 border-r editable-cell">
+                        <input type="text" value="${formatNumberToInput(bankData.contribution)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="contribution" class="table-input">
+                    </td>
+                    <td class="px-3 py-3 text-sm text-right text-purple-600 border-r editable-cell">
+                         <input type="text" value="${formatNumberToInput(bankData.yieldRate)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="yieldRate" class="table-input">
+                    </td>
+                    <td class="px-3 py-3 text-sm text-right font-bold border-r">${formatCurrency(bankData.endBalance)}</td>
+                `;
+            });
+
+            rowHtml += `<td class="px-3 py-3 text-sm text-right font-bold border-r">${formatCurrency(month.totalBalance)}</td>`;
+            rowHtml += `<td class="px-3 py-3 text-sm text-right font-extrabold">${formatCurrency(month.realBalance)}</td></tr>`;
+            return rowHtml;
+        }).join('');
+
+        if (projection.goalReached) {
+            const { years, months, finalTotal } = projection.goalInfo;
+            finalSummary.innerHTML = `Meta atingida em <span class="text-green-700">${years} anos e ${months} meses</span>.<br>Saldo total: <span class="text-green-700">${formatCurrency(finalTotal)}</span>`;
+            summaryDetails.innerHTML = `
+                <p>Total Aportado: <span class="font-semibold">${formatCurrency(projection.goalInfo.contributedAtGoal)}</span></p>
+                <p>Juros Ganhos: <span class="font-semibold">${formatCurrency(projection.goalInfo.interestAtGoal)}</span></p>
+            `;
+        } else {
+            const finalTotal = projection.results.length > 0 ? projection.results.slice(-1)[0].totalBalance : 0;
+            finalSummary.innerHTML = `Meta não atingida.<br>Saldo final projetado: <span class="text-orange-700">${formatCurrency(finalTotal)}</span>`;
+            summaryDetails.innerHTML = '';
+        }
+    }
+    
+    function renderEvolutionChart(projection) {
+        const ctx = document.getElementById('evolution-chart').getContext('2d');
+        
+        let resultsToRender = projection.results;
+        if (state.general.showUntilGoal && projection.goalReached) {
+            resultsToRender = projection.results.slice(0, projection.totalMonthsToGoal);
+        }
+
+        const labels = resultsToRender.map(r => r.date);
+        const nominalData = resultsToRender.map(r => r.totalBalance);
+        const realData = resultsToRender.map(r => r.realBalance);
+
+        if (evolutionChartInstance) evolutionChartInstance.destroy();
+        evolutionChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Património Nominal',
+                        data: nominalData,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Património Real (Ajustado)',
+                        data: realData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    function renderSummaryChart(projection) {
+        const ctx = document.getElementById('summary-pie-chart').getContext('2d');
+        if (summaryPieChartInstance) summaryPieChartInstance.destroy();
+
+        if (projection.goalReached && projection.goalInfo.contributedAtGoal > 0) {
+            summaryPieChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Total Aportado', 'Juros Ganhos'],
+                    datasets: [{
+                        data: [projection.goalInfo.contributedAtGoal, projection.goalInfo.interestAtGoal],
+                        backgroundColor: ['#34d399', '#a78bfa'],
+                    }]
+                }
+            });
+        }
+    }
+
+    function calculateProjection() {
+        let balances = (state.banks || []).map(b => b.balance);
+        let currentDefaultContribution = state.general.defaultContribution;
+        let totalContributed = (state.banks || []).reduce((sum, b) => sum + b.balance, 0);
+        let totalInterest = 0;
+        
+        const monthlyInflationRate = Math.pow(1 + (state.general.inflationRate / 100), 1/12) - 1;
+        
+        let startDate = state.general.startDate ? new Date(state.general.startDate.split('-')[0], state.general.startDate.split('-')[1] - 1, 1) : new Date();
+        
+        const results = [];
+        let goalReached = false, goalInfo = {}, totalMonthsToGoal = 600;
+        let accumulatedInflation = 1;
+
+        for (let i = 0; i < 600; i++) {
+            const currentDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+            const monthStr = currentDate.toISOString().slice(0, 7);
+            
+            const eventsForMonth = (state.events || []).filter(e => e.date === monthStr);
+            
+            eventsForMonth.forEach(event => {
+                const amount = event.amount || 0;
+                if (event.type === 'deposit') {
+                    const bankIndex = state.banks.findIndex(b => b.id == event.bankId);
+                    if (bankIndex !== -1) { balances[bankIndex] += amount; totalContributed += amount; }
+                } else if (event.type === 'withdrawal') {
+                    const bankIndex = state.banks.findIndex(b => b.id == event.bankId);
+                    if (bankIndex !== -1) { balances[bankIndex] -= amount; totalContributed -= amount; }
+                } else if (event.type === 'contribution_change') {
+                    currentDefaultContribution = amount;
+                }
+            });
+
+            const monthInputs = tableInputData[i] || {};
+            const contributionOverrides = monthInputs.contributions ?? [];
+            const yieldRateOverrides = monthInputs.yieldRates ?? [];
+
+            const bankDataForMonth = [];
+            let monthlyContributionTotal = 0;
+
+            (state.banks || []).forEach((bank, j) => {
+                let contribution = contributionOverrides[j];
+                
+                if (contribution === undefined || contribution === null) {
+                    contribution = 0;
+                }
+                
+                bankDataForMonth.push({ contribution });
+            });
+            
+            let remainingDefaultContribution = currentDefaultContribution;
+            if (contributionOverrides.length === 0 && remainingDefaultContribution > 0) {
+                 for (let k = 0; k < state.banks.length; k++) {
+                    if (state.banks[k].limit === null || balances[k] < state.banks[k].limit) {
+                        bankDataForMonth[k].contribution = remainingDefaultContribution;
+                        remainingDefaultContribution = 0;
+                        break;
+                    }
+                }
+            }
+
+
+            (state.banks || []).forEach((bank, j) => {
+                const startBalance = balances[j];
+                const contribution = bankDataForMonth[j].contribution || 0;
+                
+                monthlyContributionTotal += contribution;
+                
+                const yieldRate = yieldRateOverrides[j] ?? bank.yieldRate;
+                const yieldAmount = (startBalance + contribution) * (yieldRate / 100);
+                const endBalance = startBalance + contribution + yieldAmount;
+                
+                balances[j] = endBalance;
+                
+                bankDataForMonth[j] = { ...bankDataForMonth[j], startBalance, yieldRate, yieldAmount, endBalance };
+            });
+
+            totalContributed += monthlyContributionTotal;
+            totalInterest += bankDataForMonth.reduce((sum, b) => sum + b.yieldAmount, 0);
+            
+            const totalBalance = balances.reduce((sum, b) => sum + b, 0);
+            if (i > 0) {
+                accumulatedInflation *= (1 + monthlyInflationRate);
+            }
+            const realBalance = totalBalance / accumulatedInflation;
+            
+            const monthResult = { date: currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), monthStr, banks: bankDataForMonth, totalBalance, realBalance, isGoalMonth: false, events: eventsForMonth };
+
+            if (totalBalance >= state.general.totalGoal && !goalReached) {
+                goalReached = true;
+                monthResult.isGoalMonth = true;
+                totalMonthsToGoal = i + 1;
+                goalInfo = { 
+                    years: Math.floor(totalMonthsToGoal / 12), 
+                    months: totalMonthsToGoal % 12, 
+                    finalTotal: totalBalance,
+                    contributedAtGoal: totalContributed,
+                    interestAtGoal: totalInterest
+                };
+            }
+            results.push(monthResult);
+        }
+        return { results, goalReached, goalInfo, totalContributed, totalInterest, totalMonthsToGoal };
+    }
+
+    async function loadState() {
+        if (!currentUser) return;
+        const docRef = doc(db, "users", currentUser.uid);
+        try {
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                state = { ...getDefaultState(), ...data, general: {...getDefaultState().general, ...data.general} };
+                tableInputData = data.monthlyEdits || [];
+            } else {
+                state = getDefaultState();
+                tableInputData = [];
+            }
+        } catch (error) {
+            console.error("Erro ao carregar dados:", error);
+            state = getDefaultState();
+            tableInputData = [];
+        }
+        renderApp();
+    }
+    
+    function updateStateFromInputs() {
+        state.general.totalGoal = parseBrazilianNumber(document.getElementById('total-goal').value);
+        state.general.defaultContribution = parseBrazilianNumber(document.getElementById('default-contribution').value);
+        state.general.startDate = document.getElementById('projection-start-date').value || '';
+        state.general.inflationRate = parseBrazilianNumber(document.getElementById('inflation-rate').value);
+        state.general.showUntilGoal = document.getElementById('show-until-goal').checked;
+        state.general.darkMode = document.documentElement.classList.contains('dark');
+        
+        const newBanks = [];
+        document.querySelectorAll('#banks-container .bank-entry').forEach(el => {
+            newBanks.push({
+                id: parseInt(el.dataset.id, 10),
+                name: el.querySelector('[data-field="name"]').value,
+                balance: parseBrazilianNumber(el.querySelector('[data-field="balance"]').value),
+                yieldRate: parseBrazilianNumber(el.querySelector('[data-field="yieldRate"]').value),
+                limit: parseBrazilianNumber(el.querySelector('[data-field="limit"]').value) || null,
+            });
+        });
+        state.banks = newBanks;
+
+        const newEvents = [];
+        document.querySelectorAll('#events-container .event-entry, #past-events-container .event-entry').forEach(el => {
+             newEvents.push({
+                 id: parseInt(el.dataset.id, 10),
+                 type: el.querySelector('[data-field="type"]').value,
+                 date: el.querySelector('[data-field="date"]').value,
+                 amount: parseBrazilianNumber(el.querySelector('[data-field="amount"]').value),
+                 bankId: parseInt(el.querySelector('[data-field="bankId"]').value, 10)
+             });
+         });
+         state.events = newEvents;
+    }
+
+    async function saveState() {
+        if (!currentUser) return;
+        updateStateFromInputs();
+        const docRef = doc(db, "users", currentUser.uid);
+        const statusMessage = document.getElementById('status-message');
+        const dataToSave = { ...state, monthlyEdits: tableInputData };
+        try {
+            statusMessage.textContent = 'Salvando na nuvem...';
+            await setDoc(docRef, dataToSave);
+            statusMessage.textContent = 'Valores salvos com sucesso!';
+        } catch (error) {
+            console.error("Erro ao salvar:", error);
+            statusMessage.textContent = 'Erro ao salvar os dados.';
+        }
+    }
+
+    function resetToDefault(confirmReset = true) {
+        if (confirmReset && !confirm('Tem certeza que deseja resetar?')) return;
+        state = getDefaultState();
+        tableInputData = [];
+        renderApp();
+        if (currentUser) saveState();
+    }
+    
+    function exportToCSV() {
+        const projection = calculateProjection();
+        let csvContent = "data:text/csv;charset=utf-8,";
+        const headers = ["Mês", ...state.banks.flatMap(b => [`${b.name} Saldo Início`, `${b.name} Aporte`, `${b.name} Rendimento (%)`, `${b.name} Saldo Final`]), "Saldo Total", "Saldo Real"];
+        csvContent += headers.join(",") + "\r\n";
+        projection.results.forEach(row => {
+            const rowData = [
+                `"${row.date}"`,
+                ...row.banks.flatMap(b => [b.startBalance.toFixed(2), b.contribution.toFixed(2), b.yieldRate.toFixed(2), b.endBalance.toFixed(2)]),
+                row.totalBalance.toFixed(2),
+                row.realBalance.toFixed(2)
+            ];
+            csvContent += rowData.join(",") + "\r\n";
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "projecao_financeira.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function handleTableInputChange(e) {
+        const { monthIndex, bankIndex, field } = e.target.dataset;
+        const value = parseBrazilianNumber(e.target.value);
+
+        if (isNaN(value)) return;
+        const monthIdx = parseInt(monthIndex, 10);
+        const bankIdx = parseInt(bankIndex, 10);
+
+        while (tableInputData.length <= monthIdx) {
+            tableInputData.push({});
+        }
+        
+        const fieldMap = {
+            contribution: 'contributions',
+            yieldRate: 'yieldRates'
+        };
+        const arrayField = fieldMap[field];
+
+        if (!tableInputData[monthIdx][arrayField]) {
+            tableInputData[monthIdx][arrayField] = [];
+        }
+        
+        for (let i = 0; i < (state.banks || []).length; i++) {
+            if (tableInputData[monthIdx][arrayField][i] === undefined) {
+                tableInputData[monthIdx][arrayField][i] = null;
+            }
+        }
+
+        tableInputData[monthIdx][arrayField][bankIdx] = value;
+
+        renderTableAndCharts();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        authContainer.innerHTML = '<p class="text-sm">Verificando...</p>';
+        appContainer.classList.add('loading');
+        
+        setPersistence(auth, browserLocalPersistence)
+          .then(() => {
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    currentUser = user;
+                    authContainer.innerHTML = `<div class="text-right"><p class="text-sm">${user.displayName}</p><button id="logout-button" class="text-sm text-purple-600 hover:underline">Sair</button></div>`;
+                    appContainer.classList.remove('loading', 'disabled');
+                    loadState();
+                } else {
+                    currentUser = null;
+                    authContainer.innerHTML = '<button id="login-button" class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow">Entrar com Google</button>';
+                    appContainer.classList.add('disabled');
+                    appContainer.classList.remove('loading');
+                    state = getDefaultState();
+                    renderApp();
+                }
+            });
+          });
+        
+        authContainer.addEventListener('click', e => {
+            if (e.target.id === 'login-button') signInWithPopup(auth, provider).catch(err => console.error("Erro no login:", err));
+            if (e.target.id === 'logout-button') signOut(auth).catch(err => console.error("Erro no logout:", err));
+        });
+        
+        document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+            state.general.darkMode = !state.general.darkMode;
+            updateTheme();
+            renderTableAndCharts();
+        });
+
+        document.getElementById('add-bank-button').addEventListener('click', () => {
+            if (!currentUser) return;
+            if(!state.banks) state.banks = [];
+            state.banks.push({ id: Date.now(), name: 'Novo Banco', balance: 0, yieldRate: 1.0, limit: null });
+            renderApp();
+        });
+        
+        document.getElementById('add-event-button').addEventListener('click', () => {
+            if (!currentUser) return;
+            if (!state.events) state.events = [];
+            state.events.push({
+                id: Date.now(),
+                type: 'deposit',
+                date: new Date().toISOString().slice(0, 7),
+                amount: 10000,
+                bankId: state.banks.length > 0 ? state.banks[0].id : null
+            });
+            renderEvents();
+            renderTableAndCharts();
+        });
+
+        document.getElementById('banks-container').addEventListener('click', e => {
+            if (e.target.classList.contains('remove-bank-button')) {
+                const bankId = parseInt(e.target.dataset.id, 10);
+                state.banks = state.banks.filter(b => b.id !== bankId);
+                renderApp();
+            }
+        });
+        
+        document.getElementById('events-container').addEventListener('change', e => { if (e.target.classList.contains('event-input')) { updateStateFromInputs(); renderTableAndCharts(); }});
+        document.getElementById('events-container').addEventListener('click', e => {
+            if (e.target.classList.contains('remove-event-button')) {
+                const eventId = parseInt(e.target.dataset.id, 10);
+                state.events = state.events.filter(ev => ev.id !== eventId);
+                renderEvents();
+                renderTableAndCharts();
+            }
+        });
+        
+        document.getElementById('past-events-toggle-container').addEventListener('click', e => {
+            if (e.target.id === 'toggle-past-events') {
+                const pastContainer = document.getElementById('past-events-container');
+                pastContainer.classList.toggle('hidden');
+                e.target.textContent = pastContainer.classList.contains('hidden') ? `Mostrar ${pastContainer.children.length} Eventos Anteriores` : 'Ocultar Eventos Anteriores';
+            }
+        });
+
+        ['total-goal', 'default-contribution', 'projection-start-date', 'inflation-rate', 'show-until-goal'].forEach(id => {
+            document.getElementById(id).addEventListener('change', () => {
+                updateStateFromInputs();
+                renderTableAndCharts();
+            });
+        });
+        
+        document.getElementById('projection-table-body').addEventListener('change', e => {
+            if (e.target.classList.contains('table-input')) {
+                handleTableInputChange(e);
+            }
+        });
+        
+        document.getElementById('recalculate-button').addEventListener('click', () => { updateStateFromInputs(); renderTableAndCharts(); });
+        document.getElementById('save-button').addEventListener('click', saveState);
+        document.getElementById('reset-button').addEventListener('click', () => resetToDefault(true));
+        document.getElementById('export-csv-button').addEventListener('click', exportToCSV);
+    });
+  </script>
+</body>
+</html>
