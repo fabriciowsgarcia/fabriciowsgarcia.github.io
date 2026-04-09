@@ -258,7 +258,7 @@
                 </div>
             </div>
             <div class="table-container">
-              <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700 border-collapse">
+              <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700 border-collapse table-fixed">
                 <thead id="projection-table-head"></thead>
                 <tbody id="projection-table-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
               </table>
@@ -482,20 +482,20 @@
         
         let headerHtml = `
             <tr class="bg-white dark:bg-slate-900">
-                <th rowspan="2" class="px-4 py-6 text-center text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-500">Mês/Ano</th>
+                <th rowspan="2" class="w-24 px-4 py-6 text-center text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-500">Mês/Ano</th>
                 ${(state.banks || []).map(bank => `
                     <th colspan="4" class="px-4 py-3 text-center text-[10px] font-extrabold uppercase border-b border-r dark:border-slate-700 text-indigo-600">${bank.name}</th>
                 `).join('')}
-                <th rowspan="2" class="px-4 py-6 text-right text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-500">Rent. Total</th>
-                <th rowspan="2" class="px-4 py-6 text-right text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-800 dark:text-white">Patrimônio Nominal</th>
-                <th rowspan="2" class="px-4 py-6 text-right text-[11px] font-extrabold uppercase bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400">Poder de Compra</th>
+                <th rowspan="2" class="w-28 px-4 py-6 text-right text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-500">Rent. Total</th>
+                <th rowspan="2" class="w-32 px-4 py-6 text-right text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-800 dark:text-white">Patrimônio Nominal</th>
+                <th rowspan="2" class="w-32 px-4 py-6 text-right text-[11px] font-extrabold uppercase bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400">Poder de Compra</th>
             </tr>
             <tr class="bg-white dark:bg-slate-900">
                 ${(state.banks || []).map(() => `
-                    <th class="px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Saldo Ini</th>
-                    <th class="px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Aporte</th>
-                    <th class="px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Rent. %</th>
-                    <th class="px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Saldo Fim</th>
+                    <th class="w-24 px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Saldo Ini</th>
+                    <th class="w-20 px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Aporte</th>
+                    <th class="w-16 px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Rent. %</th>
+                    <th class="w-24 px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Saldo Fim</th>
                 `).join('')}
             </tr>
         `;
@@ -515,9 +515,8 @@
         resultsToRender.forEach((month, monthIndex) => {
             const isCurrentMonth = month.monthStr === currentMonthStr;
             const hasEvents = month.events.length > 0;
-            const eventsTooltip = hasEvents ? month.events.map(e => `• ${e.type === 'deposit' ? 'Aporte' : e.type === 'withdrawal' ? 'Retirada' : 'Muda Aporte'}: ${formatCurrency(e.amount)}`).join('\n') : '';
+            const eventsTooltip = hasEvents ? month.events.map(e => `• ${e.type === 'deposit' ? 'Aporte' : 'Retirada'}: ${formatCurrency(e.amount)}`).join('\n') : '';
             
-            // Acumula totais anuais para a linha de resumo
             yearlyContribution += month.banks.reduce((sum, b) => sum + b.contribution, 0);
             yearlyInterest += month.banks.reduce((sum, b) => sum + b.yieldAmount, 0);
 
