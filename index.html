@@ -40,7 +40,7 @@
     }
 
     .editable-cell input {
-      @apply bg-transparent border-none text-right w-full p-0 font-medium focus:ring-0 cursor-pointer;
+      @apply bg-transparent border-none text-right w-full p-0 pr-1 font-medium focus:ring-0 cursor-pointer;
     }
 
     /* Tabela com Header Fixo */
@@ -243,7 +243,7 @@
                 </div>
             </div>
             <div class="table-container">
-              <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700 border-collapse">
+              <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700 border-collapse table-fixed">
                 <thead id="projection-table-head"></thead>
                 <tbody id="projection-table-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
               </table>
@@ -463,25 +463,40 @@
         const thead = document.getElementById('projection-table-head');
         const tbody = document.getElementById('projection-table-body');
         
-        let headerHtml = `
+        // CORREÇÃO: Estrutura de colgroup para forçar larguras estreitas e fixas
+        let tableHeaderHtml = `
+            <colgroup>
+                <col class="w-28"> <!-- Mês/Ano -->
+                ${(state.banks || []).map(() => `
+                    <col class="w-32"> <!-- Saldo Ini -->
+                    <col class="w-24"> <!-- Aporte -->
+                    <col class="w-20"> <!-- Rent. % -->
+                    <col class="w-32"> <!-- Saldo Fim -->
+                `).join('')}
+                <col class="w-32"> <!-- Rent. Total -->
+                <col class="w-36"> <!-- Patrimônio Total -->
+            </colgroup>
+        `;
+
+        let headerRowsHtml = `
             <tr class="bg-white dark:bg-slate-900">
                 <th rowspan="2" class="px-4 py-6 text-center text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-500">Mês/Ano</th>
                 ${(state.banks || []).map(bank => `
-                    <th colspan="4" class="px-4 py-3 text-center text-[10px] font-extrabold uppercase border-b border-r dark:border-slate-700 text-indigo-600">${bank.name}</th>
+                    <th colspan="4" class="px-2 py-3 text-center text-[10px] font-extrabold uppercase border-b border-r dark:border-slate-700 text-indigo-600 truncate">${bank.name}</th>
                 `).join('')}
                 <th rowspan="2" class="px-4 py-6 text-right text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-500">Rent. Total</th>
                 <th rowspan="2" class="px-4 py-6 text-right text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-800 dark:text-white">Patrimônio Total</th>
             </tr>
             <tr class="bg-white dark:bg-slate-900">
                 ${(state.banks || []).map(() => `
-                    <th class="px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Saldo Ini</th>
-                    <th class="px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Aporte</th>
-                    <th class="px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Rent. %</th>
-                    <th class="px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Saldo Fim</th>
+                    <th class="px-2 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Saldo Ini</th>
+                    <th class="px-2 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Aporte</th>
+                    <th class="px-2 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Rent. %</th>
+                    <th class="px-2 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Saldo Fim</th>
                 `).join('')}
             </tr>
         `;
-        thead.innerHTML = headerHtml;
+        thead.innerHTML = tableHeaderHtml + headerRowsHtml;
 
         let resultsToRender = projection.results;
         if (state.general.showUntilGoal && projection.goalReached) {
@@ -517,16 +532,16 @@
                     </div>
                 </td>
                 ${month.banks.map((bankData, bankIndex) => `
-                    <td class="px-3 py-3 text-[11px] text-right border-r dark:border-slate-700 text-slate-400">${formatCurrency(bankData.startBalance)}</td>
-                    <td class="px-3 py-3 text-[11px] text-right text-emerald-600 border-r dark:border-slate-700 font-bold editable-cell">
+                    <td class="px-2 py-3 text-[11px] text-right border-r dark:border-slate-700 text-slate-400">${formatCurrency(bankData.startBalance)}</td>
+                    <td class="px-2 py-3 text-[11px] text-right text-emerald-600 border-r dark:border-slate-700 font-bold editable-cell">
                         <input type="text" value="${formatNumberToInput(bankData.contribution)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="contribution" class="table-input">
                     </td>
-                    <td class="px-3 py-3 text-[11px] text-right text-indigo-500 border-r dark:border-slate-700 font-bold editable-cell">
+                    <td class="px-2 py-3 text-[11px] text-right text-indigo-500 border-r dark:border-slate-700 font-bold editable-cell">
                          <input type="text" value="${formatNumberToInput(bankData.yieldRate)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="yieldRate" class="table-input">
                     </td>
-                    <td class="px-3 py-3 text-[11px] text-right font-bold border-r dark:border-slate-700 text-slate-700 dark:text-slate-200">${formatCurrency(bankData.endBalance)}</td>
+                    <td class="px-2 py-3 text-[11px] text-right font-bold border-r dark:border-slate-700 text-slate-700 dark:text-slate-200">${formatCurrency(bankData.endBalance)}</td>
                 `).join('')}
-                <td class="px-3 py-3 text-[11px] text-right border-r dark:border-slate-700 text-indigo-400 font-medium">+ ${formatCurrency(month.banks.reduce((s, b) => s + b.yieldAmount, 0))}</td>
+                <td class="px-4 py-3 text-[11px] text-right border-r dark:border-slate-700 text-indigo-400 font-medium">+ ${formatCurrency(month.banks.reduce((s, b) => s + b.yieldAmount, 0))}</td>
                 <td class="px-4 py-3 text-[11px] text-right font-bold dark:border-slate-700 text-slate-800 dark:text-white">${formatCurrency(month.totalBalance)}</td>
             </tr>
             `;
