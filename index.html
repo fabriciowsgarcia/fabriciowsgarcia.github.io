@@ -6,11 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
   <title>Patrimônio Pro | Gestão Financeira</title>
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -36,14 +33,13 @@
     }
 
     .editable-cell {
-        @apply relative transition-colors duration-200 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20;
+        @apply relative transition-colors duration-150 hover:bg-indigo-50 dark:hover:bg-indigo-900/30;
     }
 
     .editable-cell input {
-      @apply bg-transparent border-none text-right w-full p-0 font-medium focus:ring-0 cursor-pointer;
+      @apply bg-transparent border-none text-right w-full p-0 font-bold focus:ring-0 cursor-pointer text-[11px];
     }
 
-    /* Tabela com Header Fixo */
     .table-container {
       max-height: 75vh;
       overflow-y: auto;
@@ -58,28 +54,22 @@
       @apply bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm;
     }
 
-    .year-divider {
-        @apply bg-slate-50 dark:bg-slate-800/80 font-bold text-slate-500 dark:text-slate-400;
+    /* Estilo para colunas muito estreitas */
+    .compact-td {
+        @apply px-1 py-2 text-[11px] border-r dark:border-slate-700 text-right overflow-hidden whitespace-nowrap;
     }
 
-    /* Tooltip Customizado */
+    .year-divider {
+        @apply bg-slate-100 dark:bg-slate-800/90 font-bold text-slate-500 dark:text-slate-400;
+    }
+
     .tooltip { position: relative; cursor: help; }
     .tooltip .tooltiptext {
       visibility: hidden;
-      width: 220px;
-      @apply bg-slate-800 text-white text-xs p-3 rounded-lg absolute z-40 bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 transition-opacity shadow-xl border border-slate-700;
+      width: 200px;
+      @apply bg-slate-800 text-white text-[10px] p-2 rounded absolute z-40 bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 transition-opacity shadow-xl border border-slate-700;
     }
     .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
-
-    /* Animações */
-    .collapse-content {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease-out;
-    }
-    .collapse-open .collapse-content {
-      max-height: 2000px;
-    }
     
     .card-gradient {
         background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
@@ -90,201 +80,132 @@
 </head>
 
 <body class="min-h-screen transition-colors duration-300">
-  <div class="max-w-[1600px] mx-auto p-4 lg:p-8">
+  <div class="max-w-[1600px] mx-auto p-4 lg:p-6">
     
-    <!-- HEADER -->
-    <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
             <div class="flex items-center gap-3">
-                <div class="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200 dark:shadow-none">
-                    <i data-lucide="trending-up" class="w-8 h-8"></i>
+                <div class="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200 dark:shadow-none">
+                    <i data-lucide="trending-up" class="w-6 h-6"></i>
                 </div>
-                <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Patrimônio <span class="text-indigo-600">Pro</span></h1>
+                <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Patrimônio <span class="text-indigo-600">Pro</span></h1>
             </div>
-            <p class="text-slate-500 dark:text-slate-400 mt-1 ml-14">Planejamento financeiro inteligente e sincronizado.</p>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1 ml-12">Planejamento financeiro inteligente.</p>
         </div>
         
         <div class="flex items-center gap-3 self-end">
-            <button id="dark-mode-toggle" class="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
-                <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
-                <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+            <button id="dark-mode-toggle" class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50">
+                <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
+                <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
             </button>
             <div id="auth-container"></div>
         </div>
     </header>
 
-    <div id="app-container" class="disabled space-y-8">
+    <div id="app-container" class="disabled space-y-6">
         
-        <!-- DASHBOARD ATUAL -->
-        <section>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="current-month-summary">
-                <!-- Preenchido via JS -->
-            </div>
-        </section>
+        <section id="current-month-summary" class="grid grid-cols-1 md:grid-cols-3 gap-4"></section>
 
-        <!-- CONFIGURAÇÕES RECOLHÍVEIS -->
-        <section class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            <div class="xl:col-span-2 space-y-6">
-                <!-- GRÁFICO PRINCIPAL -->
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold flex items-center gap-2">
-                            <i data-lucide="bar-chart-3" class="text-indigo-500"></i>
-                            Evolução Patrimonial
-                        </h2>
-                        <div class="flex gap-2">
-                            <span class="flex items-center gap-1 text-xs font-medium text-slate-500">
-                                <span class="w-3 h-3 rounded-full bg-indigo-500"></span> Nominal
-                            </span>
-                            <span class="flex items-center gap-1 text-xs font-medium text-slate-500">
-                                <span class="w-3 h-3 rounded-full bg-emerald-500"></span> Real (Inflação)
-                            </span>
-                        </div>
-                    </div>
-                    <div class="h-[400px]">
+        <section class="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            <div class="xl:col-span-3 space-y-6">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div class="h-[300px]">
                         <canvas id="evolution-chart"></canvas>
                     </div>
                 </div>
 
-                <!-- EVENTOS -->
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-bold flex items-center gap-2">
-                            <i data-lucide="calendar" class="text-indigo-500"></i>
-                            Agenda Financeira
-                        </h2>
-                        <button id="add-event-button" class="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl font-semibold text-sm hover:bg-indigo-100 transition-colors">
+                        <h2 class="text-lg font-bold flex items-center gap-2"><i data-lucide="calendar" class="w-5 h-5 text-indigo-500"></i> Agenda</h2>
+                        <button id="add-event-button" class="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-xs hover:bg-indigo-100">
                             + Novo Evento
                         </button>
                     </div>
-                    <div id="events-container" class="space-y-3"></div>
-                    <div id="past-events-toggle-container" class="mt-4"></div>
-                    <div id="past-events-container" class="hidden space-y-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700"></div>
+                    <div id="events-container" class="space-y-2"></div>
+                    <div id="past-events-toggle-container" class="mt-2"></div>
+                    <div id="past-events-container" class="hidden space-y-2 mt-2 pt-2 border-t dark:border-slate-700"></div>
                 </div>
             </div>
 
             <div class="space-y-6">
-                <!-- BANCOS (Colapsável) -->
                 <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden" id="banks-accordion">
-                    <button class="w-full p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" onclick="this.parentElement.classList.toggle('collapse-open')">
-                        <h2 class="text-xl font-bold flex items-center gap-2">
-                            <i data-lucide="wallet" class="text-indigo-500"></i>
-                            Contas e Bancos
-                        </h2>
-                        <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-300"></i>
+                    <button class="w-full p-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50" onclick="this.parentElement.classList.toggle('collapse-open')">
+                        <h2 class="text-base font-bold flex items-center gap-2"><i data-lucide="wallet" class="w-5 h-5 text-indigo-500"></i> Contas</h2>
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
                     </button>
-                    <div class="collapse-content">
-                        <div class="p-6 pt-0 space-y-4">
-                            <div id="banks-container" class="space-y-4"></div>
-                            <button id="add-bank-button" class="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl text-slate-500 hover:border-indigo-400 hover:text-indigo-500 transition-all font-medium text-sm">
-                                + Adicionar Nova Conta
-                            </button>
+                    <div class="collapse-content"><div class="p-5 pt-0 space-y-3" id="banks-container"></div>
+                        <div class="px-5 pb-5">
+                            <button id="add-bank-button" class="w-full py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 hover:text-indigo-500 text-xs font-bold">+ Nova Conta</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- CONFIG GERAIS (Colapsável) -->
                 <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden" id="settings-accordion">
-                    <button class="w-full p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" onclick="this.parentElement.classList.toggle('collapse-open')">
-                        <h2 class="text-xl font-bold flex items-center gap-2">
-                            <i data-lucide="settings" class="text-indigo-500"></i>
-                            Configurações Gerais
-                        </h2>
-                        <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-300"></i>
+                    <button class="w-full p-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50" onclick="this.parentElement.classList.toggle('collapse-open')">
+                        <h2 class="text-base font-bold flex items-center gap-2"><i data-lucide="settings" class="w-5 h-5 text-indigo-500"></i> Ajustes</h2>
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
                     </button>
-                    <div class="collapse-content">
-                        <div class="p-6 pt-0 space-y-5">
+                    <div class="collapse-content"><div class="p-5 pt-0 space-y-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Meta Objetivo</label>
+                            <input type="text" id="total-goal" class="w-full p-2 text-sm font-bold text-indigo-600">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="text-xs font-bold text-slate-400 uppercase mb-2 block">Meta Financeira Objetivo</label>
-                                <div class="relative">
-                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">R$</span>
-                                    <input type="text" id="total-goal" class="w-full pl-12 pr-4 py-3 font-bold text-indigo-600">
-                                </div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Aporte Padrão</label>
+                                <input type="text" id="default-contribution" class="w-full p-2 text-sm font-bold text-emerald-600">
                             </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="text-xs font-bold text-slate-400 uppercase mb-2 block">Aporte Mensal</label>
-                                    <input type="text" id="default-contribution" class="w-full p-3 font-bold text-emerald-600">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-bold text-slate-400 uppercase mb-2 block">Inflação Anual</label>
-                                    <input type="text" id="inflation-rate" class="w-full p-3 font-bold text-orange-500">
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="text-xs font-bold text-slate-400 uppercase mb-2 block">Início</label>
-                                    <input type="month" id="projection-start-date" class="w-full p-3 font-medium">
-                                </div>
-                                <div class="flex items-center gap-2 pt-6">
-                                    <input type="checkbox" id="show-until-goal" class="w-5 h-5 rounded-md text-indigo-600 border-slate-300 focus:ring-indigo-500">
-                                    <label for="show-until-goal" class="text-sm font-semibold text-slate-600 dark:text-slate-300">Limitar Meta</label>
-                                </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Inflação Anual</label>
+                                <input type="text" id="inflation-rate" class="w-full p-2 text-sm font-bold text-orange-500">
                             </div>
                         </div>
-                    </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="month" id="projection-start-date" class="p-2 text-xs">
+                            <div class="flex items-center gap-1.5">
+                                <input type="checkbox" id="show-until-goal" class="w-4 h-4 rounded text-indigo-600">
+                                <label for="show-until-goal" class="text-[10px] font-bold text-slate-500">Limitar</label>
+                            </div>
+                        </div>
+                    </div></div>
                 </div>
             </div>
         </section>
 
-        <!-- BOTÕES DE AÇÃO -->
-        <div class="flex flex-wrap gap-4">
-            <button id="recalculate-button" class="flex-grow md:flex-none px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
-                <i data-lucide="refresh-cw" class="w-5 h-5"></i> Recalcular Projeção
-            </button>
-            <button id="save-button" class="flex-grow md:flex-none px-8 py-4 bg-slate-800 dark:bg-slate-700 text-white rounded-2xl font-bold hover:bg-slate-900 transition-all flex items-center justify-center gap-2">
-                <i data-lucide="cloud-upload" class="w-5 h-5"></i> Salvar Nuvem
-            </button>
-            <button id="export-csv-button" class="flex-grow md:flex-none px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2">
-                <i data-lucide="download" class="w-5 h-5"></i> Exportar CSV
-            </button>
-            <button id="reset-button" class="flex-grow md:flex-none px-8 py-4 bg-white border border-red-200 text-red-600 rounded-2xl font-bold hover:bg-red-50 transition-all flex items-center justify-center gap-2 ml-auto">
-                <i data-lucide="trash-2" class="w-5 h-5"></i> Resetar
-            </button>
+        <div class="flex flex-wrap gap-3">
+            <button id="recalculate-button" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-md hover:bg-indigo-700 text-sm flex items-center gap-2"><i data-lucide="refresh-cw" class="w-4 h-4"></i> Recalcular</button>
+            <button id="save-button" class="px-6 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 text-sm flex items-center gap-2"><i data-lucide="cloud-upload" class="w-4 h-4"></i> Salvar</button>
+            <button id="export-csv-button" class="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 text-sm flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> CSV</button>
+            <button id="reset-button" class="px-4 py-3 text-red-500 font-bold hover:bg-red-50 rounded-xl text-sm ml-auto">Resetar</button>
         </div>
 
-        <div id="status-message" class="text-center text-sm font-semibold text-slate-500 italic"></div>
+        <div id="status-message" class="text-center text-xs font-bold text-slate-400 italic"></div>
 
-        <!-- TABELA PRINCIPAL ATUALIZADA -->
         <section class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
-            <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
-                <div class="flex items-center gap-3">
-                    <h2 class="text-xl font-bold">Projeção Mensal Detalhada</h2>
-                    <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold rounded-md uppercase tracking-wider">600 Meses</span>
-                </div>
-                <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
-                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-indigo-500"></span> Editável</span>
-                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Meta</span>
-                </div>
-            </div>
             <div class="table-container">
-              <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700 border-collapse table-fixed">
+              <table class="min-w-full border-collapse table-fixed">
                 <thead id="projection-table-head"></thead>
-                <tbody id="projection-table-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                <tbody id="projection-table-body"></tbody>
               </table>
             </div>
         </section>
 
-        <!-- RESUMO FINAL -->
-        <section class="bg-indigo-900 text-white p-8 lg:p-12 rounded-[2rem] shadow-2xl relative overflow-hidden">
-            <div class="absolute top-0 right-0 p-12 opacity-10">
-                <i data-lucide="award" class="w-64 h-64"></i>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
-                <div class="space-y-6">
-                    <h3 class="text-3xl font-extrabold" id="final-summary-title">Conclusão do Plano</h3>
-                    <p class="text-indigo-200 text-lg leading-relaxed" id="final-summary-text"></p>
-                    <div id="summary-details" class="grid grid-cols-2 gap-4"></div>
+        <section class="bg-indigo-900 text-white p-8 rounded-[2rem] shadow-2xl relative overflow-hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center relative z-10">
+                <div class="space-y-4">
+                    <h3 class="text-2xl font-extrabold" id="final-summary-title">Resumo do Plano</h3>
+                    <p class="text-indigo-200 text-sm leading-relaxed" id="final-summary-text"></p>
+                    <div id="summary-details" class="grid grid-cols-2 gap-3"></div>
                 </div>
-                <div class="w-full max-w-sm mx-auto">
+                <div class="w-full max-w-[250px] mx-auto">
                     <canvas id="summary-pie-chart"></canvas>
                 </div>
             </div>
         </section>
     </div>
     
-    <footer class="mt-16 pb-8 text-center">
-        <p class="text-slate-400 dark:text-slate-600 text-sm font-medium">Design by Fabrício Garcia &bull; Powered by Gemini 2.5</p>
+    <footer class="mt-12 pb-6 text-center">
+        <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Patrimônio Pro &bull; Design de Alta Densidade</p>
     </footer>
   </div>
 
@@ -314,7 +235,10 @@
     let summaryPieChartInstance = null;
 
     const formatCurrency = (value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    // Função compacta: apenas os números
+    const formatCompact = (value) => value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const formatNumberToInput = (value) => (typeof value === 'number' ? value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
+    
     const parseBrazilianNumber = (stringValue) => {
         if (typeof stringValue !== 'string' || !stringValue) return 0;
         const sanitized = stringValue.replace(/\./g, '').replace(',', '.');
@@ -323,7 +247,7 @@
 
     function getDefaultState() {
         return {
-            banks: [{ id: Date.now(), name: 'Investimento Principal', balance: 100000, yieldRate: 1.0, limit: null }],
+            banks: [{ id: Date.now(), name: 'Principal', balance: 100000, yieldRate: 1.0, limit: null }],
             events: [],
             general: {
                 totalGoal: 1000000,
@@ -346,36 +270,21 @@
     }
 
     function updateTheme() {
-        if (state.general.darkMode) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        if (state.general.darkMode) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
     }
 
     function renderBankInputs() {
         const container = document.getElementById('banks-container');
         container.innerHTML = (state.banks || []).map((bank) => `
-            <div class="bank-entry bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 group" data-id="${bank.id}">
-                <div class="flex items-center justify-between mb-3">
-                    <input type="text" value="${bank.name}" data-field="name" class="bank-input bg-transparent border-none p-0 font-bold text-slate-800 dark:text-white w-full focus:ring-0">
-                    <button data-id="${bank.id}" class="remove-bank-button text-red-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <i data-lucide="x-circle" class="w-5 h-5"></i>
-                    </button>
+            <div class="bank-entry bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 group" data-id="${bank.id}">
+                <div class="flex items-center justify-between mb-2">
+                    <input type="text" value="${bank.name}" data-field="name" class="bank-input bg-transparent border-none p-0 font-bold text-xs w-full focus:ring-0">
+                    <button data-id="${bank.id}" class="remove-bank-button text-red-400 hover:text-red-600 p-0.5 opacity-0 group-hover:opacity-100"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Saldo</label>
-                        <input type="text" value="${formatNumberToInput(bank.balance)}" data-field="balance" class="bank-input w-full p-2 text-sm font-semibold">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Juros (%)</label>
-                        <input type="text" value="${formatNumberToInput(bank.yieldRate)}" data-field="yieldRate" class="bank-input w-full p-2 text-sm font-semibold">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Limite Aporte</label>
-                        <input type="text" value="${bank.limit ? formatNumberToInput(bank.limit) : ''}" data-field="limit" placeholder="Sem limite" class="bank-input w-full p-2 text-sm">
-                    </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" value="${formatNumberToInput(bank.balance)}" data-field="balance" class="bank-input w-full p-1.5 text-[11px] font-semibold" placeholder="Saldo">
+                    <input type="text" value="${formatNumberToInput(bank.yieldRate)}" data-field="yieldRate" class="bank-input w-full p-1.5 text-[11px] font-semibold" placeholder="Juros %">
                 </div>
             </div>
         `).join('');
@@ -400,37 +309,23 @@
         const futureEvents = allEvents.filter(e => e.date >= currentMonthStr);
         const pastEvents = allEvents.filter(e => e.date < currentMonthStr);
 
-        const renderEventItem = (event) => {
-            const isContributionChange = event.type === 'contribution_change';
-            const selectedBankId = event.bankId || (state.banks.length > 0 ? state.banks[0].id : '');
-            return `
-            <div class="event-entry grid grid-cols-1 md:grid-cols-5 gap-3 items-center p-3 bg-slate-50 dark:bg-slate-700/30 rounded-2xl border border-slate-100 dark:border-slate-700" data-id="${event.id}">
-                <select data-field="type" class="event-input text-xs font-bold py-2">
-                    <option value="deposit" ${event.type === 'deposit' ? 'selected' : ''}>Aporte Extra</option>
+        const renderEventItem = (event) => `
+            <div class="event-entry grid grid-cols-4 gap-2 items-center p-2 bg-slate-50 dark:bg-slate-700/20 rounded-xl border border-slate-100 dark:border-slate-700" data-id="${event.id}">
+                <input type="month" value="${event.date}" data-field="date" class="event-input text-[10px] p-1.5">
+                <input type="text" value="${formatNumberToInput(event.amount)}" data-field="amount" class="event-input text-right text-[10px] p-1.5 font-bold">
+                <select data-field="type" class="event-input text-[10px] p-1.5">
+                    <option value="deposit" ${event.type === 'deposit' ? 'selected' : ''}>Aporte</option>
                     <option value="withdrawal" ${event.type === 'withdrawal' ? 'selected' : ''}>Retirada</option>
-                    <option value="contribution_change" ${isContributionChange ? 'selected' : ''}>Mudar Aporte</option>
                 </select>
-                <input type="month" value="${event.date}" data-field="date" class="event-input text-xs py-2">
-                <input type="text" value="${formatNumberToInput(event.amount)}" data-field="amount" placeholder="Valor" class="event-input text-right text-xs py-2 font-bold">
-                <select data-field="bankId" class="event-input text-xs py-2 ${isContributionChange ? 'hidden' : ''}">
-                    ${(state.banks || []).map(b => `<option value="${b.id}" ${b.id == selectedBankId ? 'selected' : ''}>${b.name}</option>`).join('')}
-                </select>
-                <button data-id="${event.id}" class="remove-event-button text-red-500 hover:bg-red-50 p-2 rounded-xl transition-colors">
-                    Remover
-                </button>
+                <button data-id="${event.id}" class="remove-event-button text-red-500 text-[10px] font-bold">Remover</button>
             </div>`;
-        };
         
-        container.innerHTML = futureEvents.length ? futureEvents.map(renderEventItem).join('') : '<p class="text-sm text-slate-400 italic text-center py-4">Sem eventos agendados.</p>';
+        container.innerHTML = futureEvents.length ? futureEvents.map(renderEventItem).join('') : '<p class="text-[11px] text-slate-400 italic text-center">Nenhum evento.</p>';
         pastContainer.innerHTML = pastEvents.map(renderEventItem).join('');
 
         if (pastEvents.length > 0) {
-            toggleContainer.innerHTML = `<button id="toggle-past-events" class="w-full py-2 text-xs font-bold text-slate-400 hover:text-indigo-500 flex items-center justify-center gap-2">
-                <i data-lucide="history" class="w-4 h-4"></i> Mostrar ${pastEvents.length} Eventos Anteriores
-            </button>`;
-        } else {
-            toggleContainer.innerHTML = '';
-        }
+            toggleContainer.innerHTML = `<button id="toggle-past-events" class="w-full py-1 text-[10px] font-bold text-slate-400 flex items-center justify-center gap-1"><i data-lucide="history" class="w-3 h-3"></i> Eventos Anteriores (${pastEvents.length})</button>`;
+        } else toggleContainer.innerHTML = '';
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
@@ -444,36 +339,20 @@
             const totalInterest = currentMonthData.banks.reduce((sum, b) => sum + b.yieldAmount, 0);
 
             container.innerHTML = `
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm transition-transform hover:scale-[1.02]">
-                    <div class="flex items-center gap-3 mb-2">
-                        <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-lg">
-                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
-                        </div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aportado este Mês</span>
-                    </div>
-                    <p class="text-2xl font-extrabold text-slate-900 dark:text-white">${formatCurrency(totalContribution)}</p>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border dark:border-slate-700 shadow-sm">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Aporte do Mês</span>
+                    <p class="text-xl font-extrabold text-slate-900 dark:text-white">${formatCurrency(totalContribution)}</p>
                 </div>
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm transition-transform hover:scale-[1.02]">
-                    <div class="flex items-center gap-3 mb-2">
-                        <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-lg">
-                            <i data-lucide="pie-chart" class="w-5 h-5"></i>
-                        </div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Rendimento Gerado</span>
-                    </div>
-                    <p class="text-2xl font-extrabold text-indigo-600">${formatCurrency(totalInterest)}</p>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border dark:border-slate-700 shadow-sm">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Juros do Mês</span>
+                    <p class="text-xl font-extrabold text-indigo-600">${formatCurrency(totalInterest)}</p>
                 </div>
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm card-gradient text-white !border-none transition-transform hover:scale-[1.02]">
-                    <div class="flex items-center gap-3 mb-2">
-                        <div class="p-2 bg-white/20 text-white rounded-lg">
-                            <i data-lucide="wallet" class="w-5 h-5"></i>
-                        </div>
-                        <span class="text-xs font-bold text-white/70 uppercase tracking-wider">Saldo Final Previsto</span>
-                    </div>
-                    <p class="text-2xl font-extrabold">${formatCurrency(currentMonthData.totalBalance)}</p>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm card-gradient text-white">
+                    <span class="text-[10px] font-bold text-white/70 uppercase block mb-1">Saldo Final Previsto</span>
+                    <p class="text-xl font-extrabold">${formatCurrency(currentMonthData.totalBalance)}</p>
                 </div>
             `;
         }
-        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function renderTable(projection) {
@@ -481,21 +360,21 @@
         const tbody = document.getElementById('projection-table-body');
         
         let headerHtml = `
-            <tr class="bg-white dark:bg-slate-900">
-                <th rowspan="2" class="w-24 px-4 py-6 text-center text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-500">Mês/Ano</th>
+            <tr class="bg-white dark:bg-slate-900 border-b dark:border-slate-700">
+                <th rowspan="2" class="w-16 compact-td text-center border-r font-black text-slate-400">DATA</th>
                 ${(state.banks || []).map(bank => `
-                    <th colspan="4" class="px-4 py-3 text-center text-[10px] font-extrabold uppercase border-b border-r dark:border-slate-700 text-indigo-600">${bank.name}</th>
+                    <th colspan="4" class="px-1 py-2 text-center text-[10px] font-black uppercase border-b border-r dark:border-slate-700 text-indigo-600 truncate">${bank.name}</th>
                 `).join('')}
-                <th rowspan="2" class="w-28 px-4 py-6 text-right text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-500">Rent. Total</th>
-                <th rowspan="2" class="w-32 px-4 py-6 text-right text-[11px] font-extrabold uppercase border-r dark:border-slate-700 text-slate-800 dark:text-white">Patrimônio Nominal</th>
-                <th rowspan="2" class="w-32 px-4 py-6 text-right text-[11px] font-extrabold uppercase bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400">Poder de Compra</th>
+                <th rowspan="2" class="w-20 compact-td font-black text-slate-400">RENT. (R$)</th>
+                <th rowspan="2" class="w-24 compact-td font-black text-slate-800 dark:text-white">NOMINAL</th>
+                <th rowspan="2" class="w-24 compact-td font-black bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400">REAL</th>
             </tr>
             <tr class="bg-white dark:bg-slate-900">
                 ${(state.banks || []).map(() => `
-                    <th class="w-24 px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Saldo Ini</th>
-                    <th class="w-20 px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Aporte</th>
-                    <th class="w-16 px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Rent. %</th>
-                    <th class="w-24 px-3 py-2 text-right text-[9px] font-bold uppercase border-r dark:border-slate-700 text-slate-400">Saldo Fim</th>
+                    <th class="w-16 compact-td text-[9px] text-slate-300">S.INI</th>
+                    <th class="w-14 compact-td text-[9px] text-slate-300">APORT</th>
+                    <th class="w-10 compact-td text-[9px] text-slate-300">JUR%</th>
+                    <th class="w-16 compact-td text-[9px] text-slate-300">S.FIM</th>
                 `).join('')}
             </tr>
         `;
@@ -508,91 +387,69 @@
 
         const currentMonthStr = new Date().toISOString().slice(0, 7);
         let rowsHtml = '';
-        
-        let yearlyContribution = 0;
-        let yearlyInterest = 0;
+        let yc = 0, yi = 0;
 
         resultsToRender.forEach((month, monthIndex) => {
             const isCurrentMonth = month.monthStr === currentMonthStr;
             const hasEvents = month.events.length > 0;
-            const eventsTooltip = hasEvents ? month.events.map(e => `• ${e.type === 'deposit' ? 'Aporte' : 'Retirada'}: ${formatCurrency(e.amount)}`).join('\n') : '';
             
-            yearlyContribution += month.banks.reduce((sum, b) => sum + b.contribution, 0);
-            yearlyInterest += month.banks.reduce((sum, b) => sum + b.yieldAmount, 0);
-
-            const isEndOfYear = (monthIndex + 1) % 12 === 0;
+            yc += month.banks.reduce((sum, b) => sum + b.contribution, 0);
+            yi += month.banks.reduce((sum, b) => sum + b.yieldAmount, 0);
 
             rowsHtml += `
-            <tr class="${month.isGoalMonth ? 'bg-emerald-100 dark:bg-emerald-900/40 ring-2 ring-emerald-500 ring-inset z-10 relative' : ''} ${isCurrentMonth ? 'bg-indigo-50 dark:bg-indigo-900/20 ring-2 ring-indigo-500 ring-inset z-10 relative' : ''} hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <td class="px-4 py-3 text-xs text-center border-r font-semibold dark:border-slate-700 text-slate-600 dark:text-slate-300">
-                    <div class="flex items-center justify-center gap-2">
-                        <span>${month.date}</span>
-                        ${hasEvents ? `
-                            <div class="tooltip">
-                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-500"></i>
-                                <span class="tooltiptext">${eventsTooltip}</span>
-                            </div>
-                        ` : ''}
+            <tr class="${month.isGoalMonth ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''} ${isCurrentMonth ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-1 ring-indigo-500 ring-inset' : ''} hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <td class="compact-td text-center font-bold text-slate-500 dark:text-slate-400">
+                    <div class="flex items-center justify-center gap-1">
+                        ${month.date}
+                        ${hasEvents ? `<div class="tooltip"><i data-lucide="info" class="w-2.5 h-2.5 text-indigo-500"></i></div>` : ''}
                     </div>
                 </td>
                 ${month.banks.map((bankData, bankIndex) => `
-                    <td class="px-3 py-3 text-[11px] text-right border-r dark:border-slate-700 text-slate-400">${formatCurrency(bankData.startBalance)}</td>
-                    <td class="px-3 py-3 text-[11px] text-right text-emerald-600 border-r dark:border-slate-700 font-bold editable-cell">
+                    <td class="compact-td text-slate-400">${formatCompact(bankData.startBalance)}</td>
+                    <td class="compact-td text-emerald-600 font-bold editable-cell">
                         <input type="text" value="${formatNumberToInput(bankData.contribution)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="contribution" class="table-input">
                     </td>
-                    <td class="px-3 py-3 text-[11px] text-right text-indigo-500 border-r dark:border-slate-700 font-bold editable-cell">
+                    <td class="compact-td text-indigo-500 font-bold editable-cell">
                          <input type="text" value="${formatNumberToInput(bankData.yieldRate)}" data-month-index="${monthIndex}" data-bank-index="${bankIndex}" data-field="yieldRate" class="table-input">
                     </td>
-                    <td class="px-3 py-3 text-[11px] text-right font-bold border-r dark:border-slate-700 text-slate-700 dark:text-slate-200">${formatCurrency(bankData.endBalance)}</td>
+                    <td class="compact-td font-bold text-slate-600 dark:text-slate-200">${formatCompact(bankData.endBalance)}</td>
                 `).join('')}
-                <td class="px-3 py-3 text-[11px] text-right border-r dark:border-slate-700 text-indigo-400 font-medium">+ ${formatCurrency(month.banks.reduce((s, b) => s + b.yieldAmount, 0))}</td>
-                <td class="px-4 py-3 text-[11px] text-right font-bold border-r dark:border-slate-700 text-slate-800 dark:text-white">${formatCurrency(month.totalBalance)}</td>
-                <td class="px-4 py-3 text-[11px] text-right font-extrabold bg-indigo-50/30 dark:bg-indigo-900/10 text-indigo-700 dark:text-indigo-400">${formatCurrency(month.realBalance)}</td>
+                <td class="compact-td text-indigo-400 font-medium">${formatCompact(month.banks.reduce((s, b) => s + b.yieldAmount, 0))}</td>
+                <td class="compact-td font-bold text-slate-800 dark:text-slate-200">${formatCompact(month.totalBalance)}</td>
+                <td class="compact-td font-black text-indigo-700 dark:text-indigo-400 bg-indigo-50/20">${formatCompact(month.realBalance)}</td>
             </tr>
             `;
 
-            if (isEndOfYear) {
-                rowsHtml += `
-                <tr class="year-divider border-y-2 border-slate-200 dark:border-slate-700 shadow-inner">
-                    <td class="px-4 py-2 text-[10px] text-center uppercase tracking-widest bg-slate-100 dark:bg-slate-900">Resumo Ano</td>
-                    ${(state.banks || []).map(() => `
-                        <td colspan="4" class="px-3 py-2 text-[10px] text-right italic text-slate-400">---</td>
-                    `).join('')}
-                    <td class="px-3 py-2 text-[10px] text-right font-bold text-indigo-500/80">Juros: ${formatCurrency(yearlyInterest)}</td>
-                    <td colspan="2" class="px-4 py-2 text-[10px] text-right font-bold text-emerald-600/80 uppercase">Aportes no Ano: ${formatCurrency(yearlyContribution)}</td>
-                </tr>
-                `;
-                yearlyContribution = 0;
-                yearlyInterest = 0;
+            if ((monthIndex + 1) % 12 === 0) {
+                rowsHtml += `<tr class="year-divider">
+                    <td class="px-1 py-1 text-[9px] text-center uppercase tracking-tighter">FIM ANO</td>
+                    ${(state.banks || []).map(() => `<td colspan="4" class="border-r dark:border-slate-700"></td>`).join('')}
+                    <td class="px-1 py-1 text-[9px] text-right text-indigo-500/70">${formatCompact(yi)}</td>
+                    <td colspan="2" class="px-1 py-1 text-[9px] text-right text-emerald-600/70">APORTE ANO: ${formatCompact(yc)}</td>
+                </tr>`;
+                yc = 0; yi = 0;
             }
         });
 
         tbody.innerHTML = rowsHtml;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
 
-        const finalSummaryText = document.getElementById('final-summary-text');
-        const finalSummaryTitle = document.getElementById('final-summary-title');
-        const detailsContainer = document.getElementById('summary-details');
+        const fst = document.getElementById('final-summary-text');
+        const fstt = document.getElementById('final-summary-title');
+        const details = document.getElementById('summary-details');
 
         if (projection.goalReached) {
-            const { years, months } = projection.goalInfo;
-            finalSummaryTitle.innerText = "Objetivo Conquistado!";
-            finalSummaryText.innerHTML = `Parabéns! Você irá atingir a sua meta de <strong>${formatCurrency(state.general.totalGoal)}</strong> em exatos <strong>${years} anos e ${months} meses</strong>.`;
-            detailsContainer.innerHTML = `
-                <div class="bg-white/10 p-4 rounded-2xl border border-white/10">
-                    <p class="text-[10px] font-bold opacity-60 uppercase">Aportes Totais</p>
-                    <p class="text-xl font-bold">${formatCurrency(projection.goalInfo.contributedAtGoal)}</p>
-                </div>
-                <div class="bg-white/10 p-4 rounded-2xl border border-white/10">
-                    <p class="text-[10px] font-bold opacity-60 uppercase">Juros Acumulados</p>
-                    <p class="text-xl font-bold">${formatCurrency(projection.goalInfo.interestAtGoal)}</p>
-                </div>
+            fstt.innerText = "Meta Atingida!";
+            fst.innerHTML = `Irá atingir <strong>${formatCurrency(state.general.totalGoal)}</strong> em <strong>${projection.goalInfo.years} anos e ${projection.goalInfo.months} meses</strong>.`;
+            details.innerHTML = `
+                <div class="bg-white/10 p-3 rounded-xl border border-white/5"><p class="text-[9px] font-bold opacity-60 uppercase">Aportes</p><p class="text-lg font-bold">${formatCurrency(projection.goalInfo.contributedAtGoal)}</p></div>
+                <div class="bg-white/10 p-3 rounded-xl border border-white/5"><p class="text-[9px] font-bold opacity-60 uppercase">Juros</p><p class="text-lg font-bold">${formatCurrency(projection.goalInfo.interestAtGoal)}</p></div>
             `;
         } else {
-            finalSummaryTitle.innerText = "Análise da Projeção";
-            finalSummaryText.innerText = "Com o ritmo atual, o seu objetivo ainda não foi alcançado no período simulado. Tente aumentar o aporte mensal ou buscar rendimentos superiores.";
-            detailsContainer.innerHTML = '';
+            fstt.innerText = "Simulação";
+            fst.innerText = "Meta ainda não alcançada no período projetado.";
+            details.innerHTML = '';
         }
-        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function renderTableAndCharts() {
@@ -607,75 +464,30 @@
     function renderEvolutionChart(projection) {
         const ctx = document.getElementById('evolution-chart').getContext('2d');
         let resultsToRender = projection.results;
-        if (state.general.showUntilGoal && projection.goalReached) {
-            resultsToRender = projection.results.slice(0, projection.totalMonthsToGoal);
-        }
-
-        const labels = resultsToRender.map(r => r.date);
-        const nominalData = resultsToRender.map(r => r.totalBalance);
-        const realData = resultsToRender.map(r => r.realBalance);
+        if (state.general.showUntilGoal && projection.goalReached) resultsToRender = projection.results.slice(0, projection.totalMonthsToGoal);
 
         if (evolutionChartInstance) evolutionChartInstance.destroy();
         evolutionChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
+                labels: resultsToRender.map(r => r.date),
                 datasets: [
-                    {
-                        label: 'Patrimônio Nominal',
-                        data: nominalData,
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.05)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 0,
-                        borderWidth: 3
-                    },
-                    {
-                        label: 'Poder de Compra Real',
-                        data: realData,
-                        borderColor: '#10b981',
-                        borderDash: [6, 4],
-                        fill: false,
-                        tension: 0.4,
-                        pointRadius: 0,
-                        borderWidth: 2
-                    }
+                    { label: 'Nominal', data: resultsToRender.map(r => r.totalBalance), borderColor: '#6366f1', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2, backgroundColor: 'rgba(99, 102, 241, 0.05)' },
+                    { label: 'Real', data: resultsToRender.map(r => r.realBalance), borderColor: '#10b981', borderDash: [5, 5], fill: false, tension: 0.4, pointRadius: 0, borderWidth: 1.5 }
                 ]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { intersect: false, mode: 'index' },
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10, weight: 'bold' } } },
-                    x: { grid: { display: false }, ticks: { autoSkip: true, maxRotation: 0, font: { size: 10 } } }
-                }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(0,0,0,0.03)' }, ticks: { font: { size: 9 } } }, x: { grid: { display: false }, ticks: { autoSkip: true, maxRotation: 0, font: { size: 9 } } } } }
         });
     }
 
     function renderSummaryChart(projection) {
         const ctx = document.getElementById('summary-pie-chart').getContext('2d');
         if (summaryPieChartInstance) summaryPieChartInstance.destroy();
-
         if (projection.goalReached && projection.goalInfo.contributedAtGoal > 0) {
             summaryPieChartInstance = new Chart(ctx, {
                 type: 'doughnut',
-                data: {
-                    labels: ['Aportes', 'Juros'],
-                    datasets: [{
-                        data: [projection.goalInfo.contributedAtGoal, projection.goalInfo.interestAtGoal],
-                        backgroundColor: ['#ffffff', '#818cf8'],
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    plugins: { legend: { position: 'bottom', labels: { color: '#fff', font: { weight: 'bold', size: 12 } } } },
-                    cutout: '75%'
-                }
+                data: { labels: ['Aportes', 'Juros'], datasets: [{ data: [projection.goalInfo.contributedAtGoal, projection.goalInfo.interestAtGoal], backgroundColor: ['#ffffff', '#818cf8'], borderWidth: 0 }] },
+                options: { plugins: { legend: { position: 'bottom', labels: { color: '#fff', font: { weight: 'bold', size: 10 } } } }, cutout: '80%' }
             });
         }
     }
@@ -689,8 +501,7 @@
         let startDate = state.general.startDate ? new Date(state.general.startDate.split('-')[0], state.general.startDate.split('-')[1] - 1, 1) : new Date();
         
         const results = [];
-        let goalReached = false, goalInfo = {}, totalMonthsToGoal = 600;
-        let accumulatedInflation = 1;
+        let goalReached = false, goalInfo = {}, totalMonthsToGoal = 600, accumulatedInflation = 1;
 
         for (let i = 0; i < 600; i++) {
             const currentDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
@@ -699,15 +510,9 @@
             const eventsForMonth = (state.events || []).filter(e => e.date === monthStr);
             eventsForMonth.forEach(event => {
                 const amount = event.amount || 0;
-                if (event.type === 'deposit') {
-                    const bankIndex = state.banks.findIndex(b => b.id == event.bankId);
-                    if (bankIndex !== -1) { balances[bankIndex] += amount; totalContributed += amount; }
-                } else if (event.type === 'withdrawal') {
-                    const bankIndex = state.banks.findIndex(b => b.id == event.bankId);
-                    if (bankIndex !== -1) { balances[bankIndex] -= amount; totalContributed -= amount; }
-                } else if (event.type === 'contribution_change') {
-                    currentDefaultContribution = amount;
-                }
+                if (event.type === 'deposit') { const idx = state.banks.findIndex(b => b.id == event.bankId); if (idx !== -1) { balances[idx] += amount; totalContributed += amount; } }
+                else if (event.type === 'withdrawal') { const idx = state.banks.findIndex(b => b.id == event.bankId); if (idx !== -1) { balances[idx] -= amount; totalContributed -= amount; } }
+                else if (event.type === 'contribution_change') currentDefaultContribution = amount;
             });
 
             const monthInputs = tableInputData[i] || {};
@@ -723,16 +528,13 @@
                     if (currentDefaultContribution > 0) {
                         let targetIdx = -1;
                         for (let k = 0; k < state.banks.length; k++) {
-                            if ((state.banks[k].limit === null || balances[k] < state.banks[k].limit) && (contributionOverrides[k] === undefined || contributionOverrides[k] === null)) {
-                                targetIdx = k; break;
-                            }
+                            if ((state.banks[k].limit === null || balances[k] < state.banks[k].limit) && (contributionOverrides[k] === undefined || contributionOverrides[k] === null)) { targetIdx = k; break; }
                         }
                         if (j === targetIdx) contribution = currentDefaultContribution;
                     }
                 }
                 totalContributed += contribution;
                 monthlyContributionTotal += contribution;
-                
                 const yieldRate = yieldRateOverrides[j] ?? bank.yieldRate;
                 const yieldAmount = (balances[j] + contribution) * (yieldRate / 100);
                 const startBalance = balances[j];
@@ -746,15 +548,9 @@
             if (i > 0) accumulatedInflation *= (1 + monthlyInflationRate);
             const realBalance = totalBalance / accumulatedInflation;
             
-            const monthResult = { 
-                date: currentDate.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }), 
-                monthStr, banks: bankDataForMonth, totalBalance, realBalance, isGoalMonth: false, events: eventsForMonth 
-            };
-
+            const monthResult = { date: currentDate.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }), monthStr, banks: bankDataForMonth, totalBalance, realBalance, isGoalMonth: false, events: eventsForMonth };
             if (totalBalance >= state.general.totalGoal && !goalReached) {
-                goalReached = true;
-                monthResult.isGoalMonth = true;
-                totalMonthsToGoal = i + 1;
+                goalReached = true; monthResult.isGoalMonth = true; totalMonthsToGoal = i + 1;
                 goalInfo = { years: Math.floor(totalMonthsToGoal/12), months: totalMonthsToGoal%12, finalTotal: totalBalance, contributedAtGoal: totalContributed, interestAtGoal: totalInterest };
             }
             results.push(monthResult);
@@ -771,10 +567,7 @@
                 const data = docSnap.data();
                 state = { ...getDefaultState(), ...data, general: {...getDefaultState().general, ...data.general} };
                 tableInputData = data.monthlyEdits || [];
-            } else {
-                state = getDefaultState();
-                tableInputData = [];
-            }
+            } else { state = getDefaultState(); tableInputData = []; }
         } catch (error) { console.error(error); }
         renderApp();
     }
@@ -794,7 +587,7 @@
                 name: el.querySelector('[data-field="name"]').value,
                 balance: parseBrazilianNumber(el.querySelector('[data-field="balance"]').value),
                 yieldRate: parseBrazilianNumber(el.querySelector('[data-field="yieldRate"]').value),
-                limit: parseBrazilianNumber(el.querySelector('[data-field="limit"]').value) || null,
+                limit: parseBrazilianNumber(el.querySelector('[data-field="limit"]')?.value) || null,
             });
         });
         state.banks = newBanks;
@@ -806,7 +599,7 @@
                  type: el.querySelector('[data-field="type"]').value,
                  date: el.querySelector('[data-field="date"]').value,
                  amount: parseBrazilianNumber(el.querySelector('[data-field="amount"]').value),
-                 bankId: parseInt(el.querySelector('[data-field="bankId"]').value)
+                 bankId: parseInt(el.querySelector('[data-field="bankId"]')?.value || state.banks[0]?.id)
              });
          });
          state.events = newEvents;
@@ -818,11 +611,11 @@
         const docRef = doc(db, "users", currentUser.uid);
         const statusMessage = document.getElementById('status-message');
         try {
-            statusMessage.textContent = 'Sincronizando com a nuvem...';
+            statusMessage.textContent = 'A sincronizar...';
             await setDoc(docRef, { ...state, monthlyEdits: tableInputData });
-            statusMessage.textContent = 'Dados salvos com sucesso!';
+            statusMessage.textContent = 'Salvo!';
             setTimeout(() => statusMessage.textContent = '', 3000);
-        } catch (error) { statusMessage.textContent = 'Erro ao salvar dados.'; }
+        } catch (error) { statusMessage.textContent = 'Erro ao salvar.'; }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -831,21 +624,15 @@
                 if (user) {
                     currentUser = user;
                     document.getElementById('auth-container').innerHTML = `
-                        <div class="flex items-center gap-3 bg-white dark:bg-slate-800 p-1.5 pr-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <img src="${user.photoURL}" class="w-8 h-8 rounded-xl object-cover" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png'">
-                            <div class="hidden sm:block">
-                                <p class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Usuário</p>
-                                <p class="text-xs font-bold leading-none">${user.displayName}</p>
-                            </div>
-                            <button id="logout-button" class="ml-2 text-slate-400 hover:text-red-500 transition-colors">
-                                <i data-lucide="log-out" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    `;
+                        <div class="flex items-center gap-2 bg-white dark:bg-slate-800 p-1 pr-3 rounded-xl border dark:border-slate-700 shadow-sm">
+                            <img src="${user.photoURL}" class="w-7 h-7 rounded-lg object-cover" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png'">
+                            <span class="text-[10px] font-bold truncate max-w-[80px]">${user.displayName.split(' ')[0]}</span>
+                            <button id="logout-button" class="text-slate-400 hover:text-red-500"><i data-lucide="log-out" class="w-3.5 h-3.5"></i></button>
+                        </div>`;
                     document.getElementById('app-container').classList.remove('disabled');
                     loadState();
                 } else {
-                    document.getElementById('auth-container').innerHTML = `<button id="login-button" class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center gap-2"><i data-lucide="log-in" class="w-4 h-4"></i> Entrar com Google</button>`;
+                    document.getElementById('auth-container').innerHTML = `<button id="login-button" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs flex items-center gap-2"><i data-lucide="log-in" class="w-3.5 h-3.5"></i> Entrar</button>`;
                     document.getElementById('app-container').classList.add('disabled');
                     state = getDefaultState();
                     renderApp();
@@ -867,7 +654,7 @@
 
         document.getElementById('add-bank-button').addEventListener('click', () => {
             if (!state.banks) state.banks = [];
-            state.banks.push({ id: Date.now(), name: 'Nova Conta', balance: 0, yieldRate: 1.0, limit: null });
+            state.banks.push({ id: Date.now(), name: 'Conta', balance: 0, yieldRate: 1.0, limit: null });
             renderBankInputs();
         });
 
@@ -879,25 +666,18 @@
 
         document.getElementById('banks-container').addEventListener('click', e => {
             const btn = e.target.closest('.remove-bank-button');
-            if (btn) {
-                state.banks = state.banks.filter(b => b.id != btn.dataset.id);
-                renderBankInputs();
-            }
+            if (btn) { state.banks = state.banks.filter(b => b.id != btn.dataset.id); renderBankInputs(); }
         });
 
         document.getElementById('events-container').addEventListener('click', e => {
             const btn = e.target.closest('.remove-event-button');
-            if (btn) {
-                state.events = state.events.filter(ev => ev.id != btn.dataset.id);
-                renderEvents();
-            }
+            if (btn) { state.events = state.events.filter(ev => ev.id != btn.dataset.id); renderEvents(); }
         });
 
         document.getElementById('past-events-toggle-container').addEventListener('click', e => {
             if (e.target.closest('#toggle-past-events')) {
                 const past = document.getElementById('past-events-container');
                 past.classList.toggle('hidden');
-                e.target.closest('#toggle-past-events').innerHTML = past.classList.contains('hidden') ? `<i data-lucide="history" class="w-4 h-4"></i> Mostrar Eventos Anteriores` : `<i data-lucide="eye-off" class="w-4 h-4"></i> Ocultar Eventos Anteriores`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             }
         });
@@ -906,24 +686,23 @@
         document.getElementById('save-button').addEventListener('click', saveState);
         document.getElementById('export-csv-button').addEventListener('click', () => {
             const projection = calculateProjection();
-            let csv = "Mes,Patrimonio Nominal,Poder Compra Real\n";
+            let csv = "Mes,Nominal,Real\n";
             projection.results.forEach(r => csv += `${r.date},${r.totalBalance},${r.realBalance}\n`);
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = 'projecao.csv'; a.click();
         });
-        document.getElementById('reset-button').addEventListener('click', () => { if(confirm('Resetar dados?')) { state = getDefaultState(); tableInputData = []; renderApp(); } });
+        document.getElementById('reset-button').addEventListener('click', () => { if(confirm('Resetar?')) { state = getDefaultState(); tableInputData = []; renderApp(); } });
 
         document.getElementById('projection-table-body').addEventListener('change', e => {
             if (e.target.classList.contains('table-input')) {
                 const { monthIndex, bankIndex, field } = e.target.dataset;
                 const value = parseBrazilianNumber(e.target.value);
-                const mIdx = parseInt(monthIndex);
-                const bIdx = parseInt(bankIndex);
+                const mIdx = parseInt(monthIndex), bIdx = parseInt(bankIndex);
                 while (tableInputData.length <= mIdx) tableInputData.push({});
-                const fieldKey = field === 'contribution' ? 'contributions' : 'yieldRates';
-                if (!tableInputData[mIdx][fieldKey]) tableInputData[mIdx][fieldKey] = Array(state.banks.length).fill(null);
-                tableInputData[mIdx][fieldKey][bIdx] = value;
+                const key = field === 'contribution' ? 'contributions' : 'yieldRates';
+                if (!tableInputData[mIdx][key]) tableInputData[mIdx][key] = Array(state.banks.length).fill(null);
+                tableInputData[mIdx][key][bIdx] = value;
                 renderTableAndCharts();
             }
         });
