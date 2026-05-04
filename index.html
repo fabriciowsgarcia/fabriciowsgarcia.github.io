@@ -531,7 +531,6 @@
             const docSnap = await getDoc(doc(db, "users", currentUser.uid));
             if (docSnap.exists()) { 
                 const d = docSnap.data(); 
-                // CORREÇÃO: Mesclagem segura garantindo que o estado não seja sobrescrito por valores vazios
                 state = { 
                     banks: d.banks || getDefaultState().banks,
                     events: d.events || [],
@@ -582,8 +581,16 @@
     async function saveState() {
         if (!currentUser) return; updateStateFromInputs();
         const sm = document.getElementById('status-message');
-        try { sm.textContent = 'A sincronizar com a nuvem...'; await setDoc(doc(db, "users", currentUser.uid), { ...state, monthlyEdits: tableInputData }); sm.textContent = 'Sincronizado com sucesso!'; setTimeout(() => sm.textContent = '', 3000); }
-        catch (e) { sm.textContent = 'Erro ao sincronizar dados.'; }
+        try { 
+            sm.textContent = 'A sincronizar com a nuvem...'; 
+            await setDoc(doc(db, "users", currentUser.uid), { ...state, monthlyEdits: tableInputData }); 
+            sm.textContent = 'Sincronizado com sucesso!'; 
+            setTimeout(() => sm.textContent = '', 3000); 
+        }
+        catch (e) { 
+            console.error("Erro ao salvar no Firestore:", e);
+            sm.textContent = 'Erro ao sincronizar dados.'; 
+        }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -592,15 +599,15 @@
                 if (user) {
                     currentUser = user;
                     document.getElementById('auth-container').innerHTML = `
-                        <div class="flex items-center gap-3 bg-white dark:bg-slate-800 p-1.5 pr-4 rounded-2xl border dark:border-slate-700 shadow-sm">
-                            <img src="${user.photoURL}" class="w-8 h-8 rounded-xl object-cover" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png'">
-                            <div class="hidden sm:block"><p class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Usuário</p><p class="text-xs font-bold leading-none">${user.displayName}</p></div>
+                        <div class="flex items-center gap-3 bg-white dark:bg-slate-800 p-1.5 pr-4 rounded-2xl border dark:border-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-700">
+                            <img src="${user.photoURL}" class="w-8 h-8 rounded-xl object-cover border border-slate-200 dark:border-slate-600" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png'">
+                            <div class="hidden sm:block"><p class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1 tracking-wider">Usuário</p><p class="text-xs font-bold leading-none text-slate-700 dark:text-slate-200">${user.displayName}</p></div>
                             <button id="logout-button" class="ml-2 text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i></button>
                         </div>`;
                     document.getElementById('app-container').classList.remove('disabled');
                     loadState();
                 } else {
-                    document.getElementById('auth-container').innerHTML = `<button id="login-button" class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 flex items-center gap-2"><i data-lucide="log-in" class="w-4 h-4"></i> Entrar com Google</button>`;
+                    document.getElementById('auth-container').innerHTML = `<button id="login-button" class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 flex items-center gap-2 transition-all"><i data-lucide="log-in" class="w-4 h-4"></i> Entrar com Google</button>`;
                     document.getElementById('app-container').classList.add('disabled');
                     state = getDefaultState(); renderApp();
                 }
@@ -612,8 +619,8 @@
         document.getElementById('dark-mode-toggle').addEventListener('click', () => { state.general.darkMode = !state.general.darkMode; updateTheme(); renderTableAndCharts(); });
         document.getElementById('add-bank-button').addEventListener('click', () => { if (!state.banks) state.banks = []; state.banks.push({ id: Date.now(), name: 'Nova Conta', balance: 0, yieldRate: 1.0, limit: null }); renderBankInputs(); });
         document.getElementById('add-event-button').addEventListener('click', () => { if (!state.events) state.events = []; state.events.push({ id: Date.now(), type: 'deposit', date: new Date().toISOString().slice(0, 7), amount: 0, bankId: state.banks[0]?.id }); renderEvents(); });
-        document.getElementById('banks-container').addEventListener('click', e => { const btn = e.target.closest('.remove-bank-button'); if (btn) { state.banks = state.banks.filter(b => b.id != btn.dataset.id); renderBankInputs(); } });
-        document.getElementById('events-container').addEventListener('click', e => { const btn = e.target.closest('.remove-event-button'); if (btn) { state.events = state.events.filter(ev => ev.id != btn.dataset.id); renderEvents(); } });
+        document.getElementById('banks-container').addEventListener('click', e => { const btn = e.target.closest('.remove-bank-button'); if (btn) { state.banks = state.banks.filter(b => b.id != btn.dataset.id); renderBankInputs(); renderTableAndCharts(); } });
+        document.getElementById('events-container').addEventListener('click', e => { const btn = e.target.closest('.remove-event-button'); if (btn) { state.events = state.events.filter(ev => ev.id != btn.dataset.id); renderEvents(); renderTableAndCharts(); } });
         document.getElementById('past-events-toggle-container').addEventListener('click', e => { if (e.target.closest('#toggle-past-events')) { const past = document.getElementById('past-events-container'); past.classList.toggle('hidden'); if (typeof lucide !== 'undefined') lucide.createIcons(); } });
         document.getElementById('recalculate-button').addEventListener('click', () => { updateStateFromInputs(); renderTableAndCharts(); });
         document.getElementById('save-button').addEventListener('click', saveState);
