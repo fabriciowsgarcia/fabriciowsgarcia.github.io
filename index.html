@@ -172,7 +172,7 @@
                         <div class="p-6 pt-0 space-y-4">
                             <div id="banks-container" class="space-y-4"></div>
                             <button id="add-bank-button" class="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl text-slate-500 hover:border-indigo-400 transition-all font-medium text-sm">
-                                + Adicionar Nova Conta
+                                + Adicionar Conta
                             </button>
                         </div>
                     </div>
@@ -216,13 +216,13 @@
 
         <!-- BOTÕES DE AÇÃO -->
         <div class="flex flex-wrap gap-4">
-            <button id="recalculate-button" class="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-all flex items-center gap-2">
+            <button id="recalculate-button" class="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 flex items-center gap-2">
                 <i data-lucide="refresh-cw" class="w-5 h-5"></i> Recalcular Projeção
             </button>
-            <button id="save-button" class="px-8 py-4 bg-slate-800 dark:bg-slate-700 text-white rounded-2xl font-bold hover:bg-slate-900 transition-all flex items-center gap-2">
+            <button id="save-button" class="px-8 py-4 bg-slate-800 text-white rounded-2xl font-bold hover:bg-slate-900 flex items-center gap-2">
                 <i data-lucide="cloud-upload" class="w-5 h-5"></i> Salvar na Nuvem
             </button>
-            <button id="export-csv-button" class="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center gap-2">
+            <button id="export-csv-button" class="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 flex items-center gap-2">
                 <i data-lucide="download" class="w-5 h-5"></i> Exportar CSV
             </button>
             <button id="reset-button" class="px-8 py-4 text-red-500 font-bold ml-auto hover:bg-red-50 rounded-2xl transition-colors">Resetar</button>
@@ -381,7 +381,7 @@
         results.forEach((month, mIdx) => {
             const isNow = month.monthStr === currentMonthStr;
             const hasEv = month.events.length > 0;
-            const evTip = hasEv ? month.events.map(e => `• ${e.type === 'deposit' ? 'Aporte' : e.type === 'withdrawal' ? 'Saque' : 'Mudança Aporte'}: ${formatCurrency(e.amount)}`).join('\n') : '';
+            const evTip = hasEv ? month.events.map(e => `• ${e.type === 'deposit' ? 'Aporte' : 'Saque'}: ${formatCurrency(e.amount)}`).join('\n') : '';
             
             const totalMonthlyC = month.banks.reduce((s, b) => s + b.contribution, 0);
             const totalMonthlyI = month.banks.reduce((s, b) => s + b.yieldAmount, 0);
@@ -439,7 +439,7 @@
 
         if (projection.goalReached) {
             fstt.innerText = "Objetivo Alcançado!";
-            fst.innerHTML = `Parabéns! Você irá atingir a sua meta de <strong>${formatCurrency(state.general.totalGoal)}</strong> em exatos <strong>${projection.goalInfo.years} anos e ${projection.goalInfo.months} meses</strong>.`;
+            fst.innerHTML = `Parabéns! Você irá atingir a sua meta de <strong>${formatCurrency(state.general.totalGoal)}</strong> em exatos <strong>${projection.goalInfo.years} anos e ${months} meses</strong>.`;
             det.innerHTML = `<div class="bg-white/10 p-4 rounded-2xl border border-white/10"><p class="text-[10px] font-bold opacity-60 uppercase">Aportes Totais</p><p class="text-xl font-bold">${formatCurrency(projection.goalInfo.contributedAtGoal)}</p></div><div class="bg-white/10 p-4 rounded-2xl border border-white/10"><p class="text-[10px] font-bold opacity-60 uppercase">Juros Acumulados</p><p class="text-xl font-bold">${formatCurrency(projection.goalInfo.interestAtGoal)}</p></div>`;
         } else {
             fstt.innerText = "Simulação Estratégica";
@@ -529,9 +529,23 @@
         if (!currentUser) return;
         try {
             const docSnap = await getDoc(doc(db, "users", currentUser.uid));
-            if (docSnap.exists()) { const d = docSnap.data(); state = { ...getDefaultState(), ...d, general: {...getDefaultState().general, ...d.general} }; tableInputData = d.monthlyEdits || []; }
-            else { state = getDefaultState(); tableInputData = []; }
-        } catch (e) { console.error(e); }
+            if (docSnap.exists()) { 
+                const d = docSnap.data(); 
+                // CORREÇÃO: Mesclagem segura garantindo que o estado não seja sobrescrito por valores vazios
+                state = { 
+                    banks: d.banks || getDefaultState().banks,
+                    events: d.events || [],
+                    general: { ...getDefaultState().general, ...d.general } 
+                }; 
+                tableInputData = d.monthlyEdits || []; 
+            }
+            else { 
+                state = getDefaultState(); 
+                tableInputData = []; 
+            }
+        } catch (e) { 
+            console.error("Erro ao carregar dados do Firestore:", e); 
+        }
         renderApp();
     }
 
@@ -542,9 +556,22 @@
         state.general.showUntilGoal = document.getElementById('show-until-goal').checked;
         const newB = [];
         document.querySelectorAll('#banks-container .bank-entry').forEach(el => {
-            newB.push({ id: parseInt(el.dataset.id), name: el.querySelector('[data-field="name"]').value, balance: parseBrazilianNumber(el.querySelector('[data-field="balance"]').value), yieldRate: parseBrazilianNumber(el.querySelector('[data-field="yieldRate"]').value), limit: parseBrazilianNumber(el.querySelector('[data-field="limit"]')?.value) || null });
+            const nameEl = el.querySelector('[data-field="name"]');
+            const balEl = el.querySelector('[data-field="balance"]');
+            const yieldEl = el.querySelector('[data-field="yieldRate"]');
+            const limitEl = el.querySelector('[data-field="limit"]');
+            if (nameEl && balEl) {
+                newB.push({ 
+                    id: parseInt(el.dataset.id), 
+                    name: nameEl.value, 
+                    balance: parseBrazilianNumber(balEl.value), 
+                    yieldRate: parseBrazilianNumber(yieldEl.value), 
+                    limit: parseBrazilianNumber(limitEl?.value) || null 
+                });
+            }
         });
-        state.banks = newB;
+        if (newB.length > 0) state.banks = newB;
+        
         const newE = [];
         document.querySelectorAll('#events-container .event-entry, #past-events-container .event-entry').forEach(el => {
             newE.push({ id: parseInt(el.dataset.id), type: el.querySelector('[data-field="type"]').value, date: el.querySelector('[data-field="date"]').value, amount: parseBrazilianNumber(el.querySelector('[data-field="amount"]').value), bankId: parseInt(el.querySelector('[data-field="bankId"]')?.value || state.banks[0]?.id) });
@@ -568,7 +595,7 @@
                         <div class="flex items-center gap-3 bg-white dark:bg-slate-800 p-1.5 pr-4 rounded-2xl border dark:border-slate-700 shadow-sm">
                             <img src="${user.photoURL}" class="w-8 h-8 rounded-xl object-cover" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png'">
                             <div class="hidden sm:block"><p class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Usuário</p><p class="text-xs font-bold leading-none">${user.displayName}</p></div>
-                            <button id="logout-button" class="ml-2 text-slate-400 hover:text-red-500"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+                            <button id="logout-button" class="ml-2 text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i></button>
                         </div>`;
                     document.getElementById('app-container').classList.remove('disabled');
                     loadState();
