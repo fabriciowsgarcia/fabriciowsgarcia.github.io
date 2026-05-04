@@ -125,7 +125,9 @@
     <div id="app-container" class="disabled space-y-8">
         
         <!-- DASHBOARD ATUAL -->
-        <section id="current-month-summary" class="grid grid-cols-1 md:grid-cols-3 gap-6"></section>
+        <section id="current-month-summary" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Cards de resumo gerados via JS -->
+        </section>
 
         <!-- CONFIGURAÇÕES RECOLHÍVEIS -->
         <section class="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -229,7 +231,7 @@
 
         <div id="status-message" class="text-center text-sm font-semibold text-slate-500 italic"></div>
 
-        <!-- TABELA REESTRUTURADA -->
+        <!-- TABELA REESTRUTURADA (VERTICAL) -->
         <section class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
             <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/30">
                 <h2 class="text-xl font-bold">Detalhamento da Projeção</h2>
@@ -306,21 +308,17 @@
     // --- UTILS ---
     const formatCurrency = (v) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const formatNumberToInput = (v) => (typeof v === 'number' ? v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
-    const parseBrazilianNumber = (s) => { 
-        if (!s || typeof s !== 'string') return 0; 
-        const sanitized = s.replace(/\./g, '').replace(',', '.'); 
-        return parseFloat(sanitized) || 0; 
-    };
+    const parseBrazilianNumber = (s) => { if (!s || typeof s !== 'string') return 0; const sanitized = s.replace(/\./g, '').replace(',', '.'); return parseFloat(sanitized) || 0; };
 
     function getDefaultState() {
         return {
-            banks: [{ id: Date.now(), name: 'Principal', balance: 100000, yieldRate: 1.0, limit: null }],
+            banks: [{ id: Date.now(), name: 'Principal', balance: 100000, yieldRate: 1.0, limit: null, contributionStart: '', contributionEnd: '' }],
             events: [],
             general: { totalGoal: 1000000, defaultContribution: 5000, startDate: new Date().toISOString().slice(0, 7), showUntilGoal: false, darkMode: false }
         };
     }
 
-    // --- FUNÇÕES DE RENDERIZAÇÃO (Definidas ANTES de serem chamadas) ---
+    // --- RENDERIZADORES CORE (Definidos no topo para evitar hoisting issues) ---
 
     function updateTheme() { 
         if (state.general && state.general.darkMode) document.documentElement.classList.add('dark'); 
@@ -410,19 +408,27 @@
 
             const mInps = tableInputData[i] || {}, cOvr = mInps.contributions ?? [], yOvr = mInps.yieldRates ?? [], bankD = [];
             
+            // Lógica para encontrar o banco alvo do aporte automático respeitando datas e limites
+            let targetIdx = -1;
+            if (currDefC > 0) {
+                for (let k = 0; k < state.banks.length; k++) {
+                    const bank = state.banks[k];
+                    const isWithinDateRange = (!bank.contributionStart || mStr >= bank.contributionStart) && 
+                                              (!bank.contributionEnd || mStr <= bank.contributionEnd);
+                    const isBelowLimit = (bank.limit === null || balances[k] < bank.limit);
+                    const hasNoOverride = (cOvr[k] === undefined || cOvr[k] === null);
+
+                    if (isWithinDateRange && isBelowLimit && hasNoOverride) {
+                        targetIdx = k;
+                        break;
+                    }
+                }
+            }
+
             state.banks.forEach((bank, j) => {
                 let c = cOvr[j];
                 if (c === undefined || c === null) {
-                    c = 0;
-                    if (currDefC > 0) {
-                        let target = -1;
-                        for (let k = 0; k < state.banks.length; k++) { 
-                            if ((state.banks[k].limit === null || balances[k] < state.banks[k].limit) && (cOvr[k] === undefined || cOvr[k] === null)) { 
-                                target = k; break; 
-                            } 
-                        }
-                        if (j === target) c = currDefC;
-                    }
+                    c = (j === targetIdx) ? currDefC : 0;
                 }
                 const yR = yOvr[j] ?? bank.yieldRate, startB = balances[j], yA = (startB + c) * (yR / 100), endB = startB + c + yA;
                 balances[j] = endB; totalC += c; totalI += yA;
@@ -526,10 +532,29 @@
                     <input type="text" value="${bank.name}" data-field="name" class="bank-input bg-transparent border-none p-0 font-bold text-sm w-full focus:ring-0">
                     <button data-id="${bank.id}" class="remove-bank-button text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
                 </div>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                        <label class="text-[9px] font-bold text-slate-400 uppercase mb-1 block">Saldo Inicial</label>
+                        <input type="text" value="${formatNumberToInput(bank.balance)}" data-field="balance" class="bank-input w-full p-2 text-xs font-semibold">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-bold text-slate-400 uppercase mb-1 block">Rent. % Mensal</label>
+                        <input type="text" value="${formatNumberToInput(bank.yieldRate)}" data-field="yieldRate" class="bank-input w-full p-2 text-xs font-semibold">
+                    </div>
+                </div>
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="text" value="${formatNumberToInput(bank.balance)}" data-field="balance" class="bank-input w-full p-2 text-xs font-semibold" placeholder="Saldo Inicial">
-                    <input type="text" value="${formatNumberToInput(bank.yieldRate)}" data-field="yieldRate" class="bank-input w-full p-2 text-xs font-semibold" placeholder="Rent % Mensal">
-                    <input type="text" value="${bank.limit ? formatNumberToInput(bank.limit) : ''}" data-field="limit" placeholder="Limite Aporte (Opcional)" class="bank-input w-full p-2 text-xs col-span-2">
+                    <div>
+                        <label class="text-[9px] font-bold text-indigo-400 uppercase mb-1 block">Início Aporte</label>
+                        <input type="month" value="${bank.contributionStart || ''}" data-field="contributionStart" class="bank-input w-full p-2 text-[10px]">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-bold text-indigo-400 uppercase mb-1 block">Fim Aporte</label>
+                        <input type="month" value="${bank.contributionEnd || ''}" data-field="contributionEnd" class="bank-input w-full p-2 text-[10px]">
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <label class="text-[9px] font-bold text-slate-400 uppercase mb-1 block">Limite Total da Conta (Opcional)</label>
+                    <input type="text" value="${bank.limit ? formatNumberToInput(bank.limit) : ''}" data-field="limit" placeholder="Ex: 150000" class="bank-input w-full p-2 text-xs">
                 </div>
             </div>`).join('');
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -591,7 +616,11 @@
             if (docSnap.exists()) { 
                 const d = docSnap.data(); 
                 state = { 
-                    banks: d.banks || getDefaultState().banks, 
+                    banks: (d.banks || getDefaultState().banks).map(b => ({
+                        ...b,
+                        contributionStart: b.contributionStart || '',
+                        contributionEnd: b.contributionEnd || ''
+                    })), 
                     events: d.events || [], 
                     general: { ...getDefaultState().general, ...d.general } 
                 }; 
@@ -623,13 +652,18 @@
             const balEl = el.querySelector('[data-field="balance"]');
             const yieldEl = el.querySelector('[data-field="yieldRate"]');
             const limitEl = el.querySelector('[data-field="limit"]');
+            const cStartEl = el.querySelector('[data-field="contributionStart"]');
+            const cEndEl = el.querySelector('[data-field="contributionEnd"]');
+            
             if (nameEl && balEl) {
                 newB.push({ 
                     id: parseInt(el.dataset.id), 
                     name: nameEl.value, 
                     balance: parseBrazilianNumber(balEl.value), 
                     yieldRate: parseBrazilianNumber(yieldEl.value), 
-                    limit: parseBrazilianNumber(limitEl?.value) || null 
+                    limit: parseBrazilianNumber(limitEl?.value) || null,
+                    contributionStart: cStartEl?.value || '',
+                    contributionEnd: cEndEl?.value || ''
                 });
             }
         });
@@ -714,7 +748,7 @@
 
         document.getElementById('add-bank-button')?.addEventListener('click', () => { 
             if (!state.banks) state.banks = []; 
-            state.banks.push({ id: Date.now(), name: 'Nova Conta', balance: 0, yieldRate: 1.0, limit: null }); 
+            state.banks.push({ id: Date.now(), name: 'Nova Conta', balance: 0, yieldRate: 1.0, limit: null, contributionStart: '', contributionEnd: '' }); 
             renderBankInputs(); 
             renderTableAndCharts(); 
         });
