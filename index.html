@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- CSP CORRIGIDA: Adicionado cdn.jsdelivr.net e unpkg.com em connect-src e script-src -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
+  <!-- CSP REFORÇADA: Permissões amplas para evitar bloqueios de bibliotecas e recursos do Google/Firebase -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://*.jsdelivr.net https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://*.unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://*.jsdelivr.net https://*.unpkg.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com https://www.gstatic.com; frame-src https://*.firebaseapp.com; object-src 'none'; base-uri 'self';">
   <title>Patrimônio Pro | Gestão Financeira</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -125,9 +125,7 @@
     <div id="app-container" class="disabled space-y-8">
         
         <!-- DASHBOARD ATUAL -->
-        <section id="current-month-summary" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Cards de resumo gerados via JS -->
-        </section>
+        <section id="current-month-summary" class="grid grid-cols-1 md:grid-cols-3 gap-6"></section>
 
         <!-- CONFIGURAÇÕES RECOLHÍVEIS -->
         <section class="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -217,13 +215,13 @@
 
         <!-- BOTÕES DE AÇÃO -->
         <div class="flex flex-wrap gap-4">
-            <button id="recalculate-button" class="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 flex items-center gap-2">
+            <button id="recalculate-button" class="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 flex items-center justify-center gap-2 transition-all">
                 <i data-lucide="refresh-cw" class="w-5 h-5"></i> Recalcular Projeção
             </button>
-            <button id="save-button" class="px-8 py-4 bg-slate-800 dark:bg-slate-700 text-white rounded-2xl font-bold hover:bg-slate-900 flex items-center gap-2">
+            <button id="save-button" class="px-8 py-4 bg-slate-800 text-white rounded-2xl font-bold hover:bg-slate-900 flex items-center justify-center gap-2 transition-all">
                 <i data-lucide="cloud-upload" class="w-5 h-5"></i> Salvar na Nuvem
             </button>
-            <button id="export-csv-button" class="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 flex items-center gap-2">
+            <button id="export-csv-button" class="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 flex items-center justify-center gap-2 transition-all">
                 <i data-lucide="download" class="w-5 h-5"></i> Exportar CSV
             </button>
             <button id="reset-button" class="px-8 py-4 text-red-500 font-bold ml-auto hover:bg-red-50 rounded-2xl transition-colors">Resetar</button>
@@ -231,7 +229,7 @@
 
         <div id="status-message" class="text-center text-sm font-semibold text-slate-500 italic"></div>
 
-        <!-- TABELA REESTRUTURADA (VERTICAL) -->
+        <!-- TABELA REESTRUTURADA -->
         <section class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
             <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/30">
                 <h2 class="text-xl font-bold">Detalhamento da Projeção</h2>
@@ -240,7 +238,7 @@
             <div class="table-container">
               <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700 border-collapse table-fixed">
                 <colgroup>
-                    <col class="w-48"> <!-- Data/Banco -->
+                    <col class="w-48"> <!-- Mês / Banco -->
                     <col class="w-32"> <!-- Saldo Inicial -->
                     <col class="w-28"> <!-- Aporte -->
                     <col class="w-24"> <!-- Rent. % -->
@@ -253,7 +251,7 @@
                         <th class="px-4 py-4 text-right text-[11px] font-extrabold uppercase text-slate-500 tracking-wider">Saldo Inicial</th>
                         <th class="px-4 py-4 text-right text-[11px] font-extrabold uppercase text-indigo-600 tracking-wider">Aporte</th>
                         <th class="px-4 py-4 text-right text-[11px] font-extrabold uppercase text-indigo-600 tracking-wider">Rent. %</th>
-                        <th class="px-4 py-4 text-right text-[11px] font-extrabold uppercase text-purple-500 tracking-wider">Rendimento</th>
+                        <th class="px-4 py-4 text-right text-[11px] font-extrabold uppercase text-slate-500 tracking-wider text-purple-500">Rendimento</th>
                         <th class="px-6 py-4 text-right text-[11px] font-extrabold uppercase text-slate-800 dark:text-white tracking-wider">Saldo Final</th>
                     </tr>
                 </thead>
@@ -284,6 +282,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    // --- CONFIGURAÇÃO ---
     const firebaseConfig = {
       apiKey: "AIzaSyCxCoLySMztPI2ZEirFIX8lzTziytdAtLw",
       authDomain: "projecao-financeira-app.firebaseapp.com",
@@ -298,12 +297,13 @@
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
-    let state = {};
+    let state = { banks: [], events: [], general: {} };
     let tableInputData = [];
     let currentUser = null;
     let evolutionChartInstance = null;
     let summaryPieChartInstance = null;
 
+    // --- UTILS ---
     const formatCurrency = (v) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const formatNumberToInput = (v) => (typeof v === 'number' ? v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
     const parseBrazilianNumber = (s) => { if (!s || typeof s !== 'string') return 0; const sanitized = s.replace(/\./g, '').replace(',', '.'); return parseFloat(sanitized) || 0; };
@@ -316,68 +316,16 @@
         };
     }
 
-    // --- FUNÇÕES DE RENDERIZAÇÃO ---
-    
+    // --- RENDERIZADORES CORE (Definidos no topo para evitar hoisting issues) ---
+
     function updateTheme() { 
-        if (state.general.darkMode) document.documentElement.classList.add('dark'); 
+        if (state.general && state.general.darkMode) document.documentElement.classList.add('dark'); 
         else document.documentElement.classList.remove('dark'); 
-    }
-
-    function renderBankInputs() {
-        const container = document.getElementById('banks-container');
-        if (!container) return;
-        container.innerHTML = (state.banks || []).map((bank) => `
-            <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border dark:border-slate-700 group" data-id="${bank.id}">
-                <div class="flex items-center justify-between mb-2">
-                    <input type="text" value="${bank.name}" data-field="name" class="bank-input bg-transparent border-none p-0 font-bold text-sm w-full focus:ring-0">
-                    <button data-id="${bank.id}" class="remove-bank-button text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="text" value="${formatNumberToInput(bank.balance)}" data-field="balance" class="bank-input w-full p-2 text-xs font-semibold" placeholder="Saldo Inicial">
-                    <input type="text" value="${formatNumberToInput(bank.yieldRate)}" data-field="yieldRate" class="bank-input w-full p-2 text-xs font-semibold" placeholder="Rent % Mensal">
-                    <input type="text" value="${bank.limit ? formatNumberToInput(bank.limit) : ''}" data-field="limit" placeholder="Limite Aporte (Opcional)" class="bank-input w-full p-2 text-xs col-span-2">
-                </div>
-            </div>`).join('');
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-
-    function renderGeneralInputs() {
-        document.getElementById('total-goal').value = formatNumberToInput(state.general.totalGoal);
-        document.getElementById('default-contribution').value = formatNumberToInput(state.general.defaultContribution);
-        document.getElementById('projection-start-date').value = state.general.startDate || '';
-        document.getElementById('show-until-goal').checked = state.general.showUntilGoal;
-    }
-
-    function renderEvents() {
-        const container = document.getElementById('events-container'), past = document.getElementById('past-events-container'), toggle = document.getElementById('past-events-toggle-container'), now = new Date().toISOString().slice(0, 7);
-        if (!container) return;
-        const all = (state.events || []).sort((a, b) => new Date(a.date) - new Date(b.date));
-        const future = all.filter(e => e.date >= now), prev = all.filter(e => e.date < now);
-
-        const item = (e) => {
-            const isContributionChange = e.type === 'contribution_change';
-            return `
-            <div class="grid grid-cols-4 gap-2 items-center p-2.5 bg-slate-50 dark:bg-slate-700/30 rounded-xl border dark:border-slate-700" data-id="${e.id}">
-                <input type="month" value="${e.date}" data-field="date" class="event-input text-[10px] p-2">
-                <input type="text" value="${formatNumberToInput(e.amount)}" data-field="amount" class="event-input text-right text-[10px] p-2 font-bold">
-                <select data-field="type" class="event-input text-[10px] p-2">
-                    <option value="deposit" ${e.type === 'deposit' ? 'selected' : ''}>Aporte Extra</option>
-                    <option value="withdrawal" ${e.type === 'withdrawal' ? 'selected' : ''}>Saque</option>
-                    <option value="contribution_change" ${isContributionChange ? 'selected' : ''}>Mudar Aporte</option>
-                </select>
-                <button data-id="${e.id}" class="remove-event-button text-red-500 text-[10px] font-bold">Remover</button>
-            </div>`;
-        };
-        
-        container.innerHTML = future.length ? future.map(item).join('') : '<p class="text-xs text-slate-400 italic text-center py-2">Nenhum evento futuro agendado.</p>';
-        past.innerHTML = prev.map(item).join('');
-        toggle.innerHTML = prev.length ? `<button id="toggle-past-events" class="w-full py-1.5 text-[10px] font-bold text-slate-400 flex items-center justify-center gap-1 hover:text-indigo-500 transition-colors"><i data-lucide="history" class="w-3 h-3"></i> Eventos Anteriores (${prev.length})</button>` : '';
-        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function renderCurrentMonthPanel(projection) {
         const container = document.getElementById('current-month-summary');
-        if (!container) return;
+        if (!container || !projection.results) return;
         const currentMonthStr = new Date().toISOString().slice(0, 7);
         const currentMonthData = projection.results.find(r => r.monthStr === currentMonthStr);
 
@@ -388,117 +336,32 @@
             container.innerHTML = `
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm transition-transform hover:scale-[1.02]">
                     <div class="flex items-center gap-3 mb-2">
-                        <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-lg">
-                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
-                        </div>
+                        <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-lg"><i data-lucide="plus-circle" class="w-5 h-5"></i></div>
                         <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aportado este Mês</span>
                     </div>
                     <p class="text-2xl font-extrabold text-slate-900 dark:text-white">${formatCurrency(totalContribution)}</p>
                 </div>
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm transition-transform hover:scale-[1.02]">
                     <div class="flex items-center gap-3 mb-2">
-                        <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-lg">
-                            <i data-lucide="pie-chart" class="w-5 h-5"></i>
-                        </div>
+                        <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-lg"><i data-lucide="pie-chart" class="w-5 h-5"></i></div>
                         <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Rendimento Gerado</span>
                     </div>
                     <p class="text-2xl font-extrabold text-indigo-600">${formatCurrency(totalInterest)}</p>
                 </div>
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm card-gradient text-white !border-none transition-transform hover:scale-[1.02]">
                     <div class="flex items-center gap-3 mb-2">
-                        <div class="p-2 bg-white/20 text-white rounded-lg">
-                            <i data-lucide="wallet" class="w-5 h-5"></i>
-                        </div>
+                        <div class="p-2 bg-white/20 text-white rounded-lg"><i data-lucide="wallet" class="w-5 h-5"></i></div>
                         <span class="text-xs font-bold text-white/70 uppercase tracking-wider">Saldo Final Previsto</span>
                     </div>
                     <p class="text-2xl font-extrabold">${formatCurrency(currentMonthData.totalBalance)}</p>
-                </div>
-            `;
-        }
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-
-    function renderTable(projection) {
-        const tbody = document.getElementById('projection-table-body');
-        if (!tbody) return;
-        let results = projection.results;
-        if (state.general.showUntilGoal && projection.goalReached) results = results.slice(0, projection.totalMonthsToGoal);
-
-        const currentMonthStr = new Date().toISOString().slice(0, 7);
-        let html = '';
-        let yearlyC = 0, yearlyI = 0;
-
-        results.forEach((month, mIdx) => {
-            const isNow = month.monthStr === currentMonthStr;
-            const hasEv = month.events.length > 0;
-            const evTip = hasEv ? month.events.map(e => `• ${e.type === 'deposit' ? 'Aporte' : 'Saque'}: ${formatCurrency(e.amount)}`).join('\n') : '';
-            
-            const totalMonthlyC = month.banks.reduce((s, b) => s + b.contribution, 0);
-            const totalMonthlyI = month.banks.reduce((s, b) => s + b.yieldAmount, 0);
-            yearlyC += totalMonthlyC;
-            yearlyI += totalMonthlyI;
-
-            html += `
-            <tr class="month-header-row ${isNow ? 'ring-2 ring-indigo-500 ring-inset z-10 relative' : ''} ${month.isGoalMonth ? 'bg-emerald-100 dark:bg-emerald-900/40' : ''}">
-                <td class="px-6 py-3 border-r dark:border-slate-700 text-indigo-600 font-bold">
-                    <div class="flex items-center gap-2">
-                        <span>${month.date}</span>
-                        ${hasEv ? `<div class="tooltip"><i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-500"></i><span class="tooltiptext">${evTip}</span></div>` : ''}
-                    </div>
-                </td>
-                <td class="px-4 py-3 text-right border-r dark:border-slate-700 text-slate-400 text-xs">${formatCurrency(month.banks.reduce((s,b)=>s+b.startBalance,0))}</td>
-                <td class="px-4 py-3 text-right border-r dark:border-slate-700 text-emerald-600 text-xs font-bold">${formatCurrency(totalMonthlyC)}</td>
-                <td class="px-4 py-3 text-right border-r dark:border-slate-700 text-slate-300 text-xs">---</td>
-                <td class="px-4 py-3 text-right border-r dark:border-slate-700 text-purple-600 text-xs font-bold">+ ${formatCurrency(totalMonthlyI)}</td>
-                <td class="px-6 py-3 text-right font-black text-slate-900 dark:text-white">${formatCurrency(month.totalBalance)}</td>
-            </tr>`;
-
-            month.banks.forEach((b, bIdx) => {
-                html += `
-                <tr class="bank-row group">
-                    <td class="px-8 py-2 border-r dark:border-slate-700 text-[10px] font-bold text-slate-500 uppercase tracking-tighter italic">└ ${state.banks[bIdx].name}</td>
-                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-slate-400 text-[11px]">${formatCurrency(b.startBalance)}</td>
-                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-emerald-500/70 text-[11px] font-medium editable-cell">
-                        <input type="text" value="${formatNumberToInput(b.contribution)}" data-month-index="${mIdx}" data-bank-index="${bIdx}" data-field="contribution" class="table-input">
-                    </td>
-                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-indigo-500/70 text-[11px] font-medium editable-cell">
-                        <input type="text" value="${formatNumberToInput(b.yieldRate)}" data-month-index="${mIdx}" data-bank-index="${bIdx}" data-field="yieldRate" class="table-input">
-                    </td>
-                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-purple-400 text-[11px]">+ ${formatCurrency(b.yieldAmount)}</td>
-                    <td class="px-6 py-2 text-right text-slate-400 text-[11px]">${formatCurrency(b.endBalance)}</td>
-                </tr>`;
-            });
-
-            if ((mIdx + 1) % 12 === 0) {
-                html += `
-                <tr class="year-divider">
-                    <td class="px-6 py-2 uppercase tracking-widest text-[9px] font-black">Resumo Anual</td>
-                    <td colspan="2" class="px-4 py-2 text-right text-[10px] font-bold">Aportes: ${formatCurrency(yearlyC)}</td>
-                    <td colspan="2" class="px-4 py-2 text-right text-[10px] font-bold">Juros ganhos: ${formatCurrency(yearlyI)}</td>
-                    <td class="px-6 py-2 text-right text-[10px] font-black">Patrimônio: ${formatCurrency(month.totalBalance)}</td>
-                </tr>`;
-                yearlyC = 0; yearlyI = 0;
-            }
-        });
-
-        tbody.innerHTML = html;
-        const fst = document.getElementById('final-summary-text'), fstt = document.getElementById('final-summary-title'), det = document.getElementById('summary-details');
-
-        if (projection.goalReached) {
-            fstt.innerText = "Objetivo Alcançado!";
-            fst.innerHTML = `Parabéns! Você irá atingir a sua meta de <strong>${formatCurrency(state.general.totalGoal)}</strong> em exatos <strong>${projection.goalInfo.years} anos e ${projection.goalInfo.months} meses</strong>.`;
-            det.innerHTML = `<div class="bg-white/10 p-4 rounded-2xl border border-white/10"><p class="text-[10px] font-bold opacity-60 uppercase">Aportes Totais</p><p class="text-xl font-bold">${formatCurrency(projection.goalInfo.contributedAtGoal)}</p></div><div class="bg-white/10 p-4 rounded-2xl border border-white/10"><p class="text-[10px] font-bold opacity-60 uppercase">Juros Acumulados</p><p class="text-xl font-bold">${formatCurrency(projection.goalInfo.interestAtGoal)}</p></div>`;
-        } else {
-            fstt.innerText = "Simulação Estratégica";
-            fst.innerText = "Com o planejamento atual, a meta estabelecida ainda não foi atingida no período de 50 anos. Considere elevar o aporte mensal ou buscar melhores rentabilidades.";
-            det.innerHTML = '';
+                </div>`;
         }
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function renderCharts(p) {
         const ctxE = document.getElementById('evolution-chart')?.getContext('2d'), ctxS = document.getElementById('summary-pie-chart')?.getContext('2d');
-        if (!ctxE) return;
+        if (!ctxE || !p.results) return;
         
         let res = p.results; if (state.general.showUntilGoal && p.goalReached) res = res.slice(0, p.totalMonthsToGoal);
         
@@ -520,12 +383,12 @@
         }
     }
 
-    // --- LÓGICA CORE ---
-
     function calculateProjection() {
-        let balances = (state.banks || []).map(b => b.balance);
-        let currDefC = state.general.defaultContribution;
-        let totalC = (state.banks || []).reduce((s, b) => s + b.balance, 0), totalI = 0;
+        if (!state.banks || state.banks.length === 0) return { results: [], goalReached: false };
+        
+        let balances = state.banks.map(b => b.balance);
+        let currDefC = state.general.defaultContribution || 0;
+        let totalC = state.banks.reduce((s, b) => s + b.balance, 0), totalI = 0;
         let startD = state.general.startDate ? new Date(state.general.startDate.split('-')[0], state.general.startDate.split('-')[1] - 1, 1) : new Date();
         const results = [];
         let goalR = false, goalI = {}, totalM = 600;
@@ -543,7 +406,7 @@
 
             const mInps = tableInputData[i] || {}, cOvr = mInps.contributions ?? [], yOvr = mInps.yieldRates ?? [], bankD = [];
             
-            (state.banks || []).forEach((bank, j) => {
+            state.banks.forEach((bank, j) => {
                 let c = cOvr[j];
                 if (c === undefined || c === null) {
                     c = 0;
@@ -560,13 +423,82 @@
 
             const totalB = balances.reduce((s, b) => s + b, 0);
             const monthRes = { date: currD.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }), monthStr: mStr, banks: bankD, totalBalance: totalB, isGoalMonth: false, events: evs };
-            if (totalB >= state.general.totalGoal && !goalR) {
+            if (totalB >= (state.general.totalGoal || Infinity) && !goalR) {
                 goalR = true; monthRes.isGoalMonth = true; totalM = i + 1;
                 goalI = { years: Math.floor(totalM/12), months: totalM%12, contributedAtGoal: totalC, interestAtGoal: totalI };
             }
             results.push(monthRes);
         }
         return { results, goalReached: goalR, goalInfo: goalI, totalMonthsToGoal: totalM };
+    }
+
+    function renderTable(projection) {
+        const tbody = document.getElementById('projection-table-body');
+        if (!tbody || !projection.results) return;
+        let results = projection.results;
+        if (state.general.showUntilGoal && projection.goalReached) results = results.slice(0, projection.totalMonthsToGoal);
+
+        const currentMonthStr = new Date().toISOString().slice(0, 7);
+        let html = '';
+        let yearlyC = 0, yearlyI = 0;
+
+        results.forEach((month, mIdx) => {
+            const isNow = month.monthStr === currentMonthStr;
+            const hasEv = month.events.length > 0;
+            const evTip = hasEv ? month.events.map(e => `• ${e.type === 'deposit' ? 'Aporte' : 'Saque'}: ${formatCurrency(e.amount)}`).join('\n') : '';
+            
+            const totalMonthlyC = month.banks.reduce((s, b) => s + b.contribution, 0);
+            const totalMonthlyI = month.banks.reduce((s, b) => s + b.yieldAmount, 0);
+            yearlyC += totalMonthlyC; yearlyI += totalMonthlyI;
+
+            html += `
+            <tr class="month-header-row ${isNow ? 'ring-2 ring-indigo-500 ring-inset z-10 relative' : ''} ${month.isGoalMonth ? 'bg-emerald-100 dark:bg-emerald-900/40' : ''}">
+                <td class="px-6 py-3 border-r dark:border-slate-700 text-indigo-600 font-bold">
+                    <div class="flex items-center gap-2"><span>${month.date}</span>${hasEv ? `<div class="tooltip"><i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-500"></i><span class="tooltiptext">${evTip}</span></div>` : ''}</div>
+                </td>
+                <td class="px-4 py-3 text-right border-r dark:border-slate-700 text-slate-400 text-xs font-semibold">${formatCurrency(month.banks.reduce((s,b)=>s+b.startBalance,0))}</td>
+                <td class="px-4 py-3 text-right border-r dark:border-slate-700 text-emerald-600 text-xs font-extrabold">${formatCurrency(totalMonthlyC)}</td>
+                <td class="px-4 py-3 text-right border-r dark:border-slate-700 text-slate-300 text-xs">---</td>
+                <td class="px-4 py-3 text-right border-r dark:border-slate-700 text-purple-600 text-xs font-bold">+ ${formatCurrency(totalMonthlyI)}</td>
+                <td class="px-6 py-3 text-right font-black text-slate-900 dark:text-white">${formatCurrency(month.totalBalance)}</td>
+            </tr>`;
+
+            month.banks.forEach((b, bIdx) => {
+                html += `
+                <tr class="bank-row group">
+                    <td class="px-8 py-2 border-r dark:border-slate-700 text-[10px] font-bold text-slate-500 uppercase tracking-tighter italic">└ ${state.banks[bIdx].name}</td>
+                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-slate-400 text-[11px]">${formatCurrency(b.startBalance)}</td>
+                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-emerald-500/70 text-[11px] font-medium editable-cell"><input type="text" value="${formatNumberToInput(b.contribution)}" data-month-index="${mIdx}" data-bank-index="${bIdx}" data-field="contribution" class="table-input"></td>
+                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-indigo-500/70 text-[11px] font-medium editable-cell"><input type="text" value="${formatNumberToInput(b.yieldRate)}" data-month-index="${mIdx}" data-bank-index="${bIdx}" data-field="yieldRate" class="table-input"></td>
+                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-purple-400 text-[11px]">+ ${formatCurrency(b.yieldAmount)}</td>
+                    <td class="px-6 py-2 text-right text-slate-400 text-[11px]">${formatCurrency(b.endBalance)}</td>
+                </tr>`;
+            });
+
+            if ((mIdx + 1) % 12 === 0) {
+                html += `
+                <tr class="year-divider">
+                    <td class="px-6 py-2 uppercase tracking-widest text-[9px] font-black text-white">Resumo Ano</td>
+                    <td colspan="2" class="px-4 py-2 text-right text-[10px] font-bold text-white">Aportes: ${formatCurrency(yearlyC)}</td>
+                    <td colspan="2" class="px-4 py-2 text-right text-[10px] font-bold text-white">Juros: ${formatCurrency(yearlyI)}</td>
+                    <td class="px-6 py-2 text-right text-[10px] font-black text-white">Patrimônio: ${formatCurrency(month.totalBalance)}</td>
+                </tr>`;
+                yearlyC = 0; yearlyI = 0;
+            }
+        });
+        tbody.innerHTML = html;
+        
+        const fst = document.getElementById('final-summary-text'), fstt = document.getElementById('final-summary-title'), det = document.getElementById('summary-details');
+        if (projection.goalReached) {
+            fstt.innerText = "Objetivo Alcançado!";
+            fst.innerHTML = `Parabéns! Você irá atingir a sua meta de <strong>${formatCurrency(state.general.totalGoal)}</strong> em exatos <strong>${projection.goalInfo.years} anos e ${projection.goalInfo.months} meses</strong>.`;
+            det.innerHTML = `<div class="bg-white/10 p-4 rounded-2xl border border-white/10"><p class="text-[10px] font-bold opacity-60 uppercase">Aportes Totais</p><p class="text-xl font-bold">${formatCurrency(projection.goalInfo.contributedAtGoal)}</p></div><div class="bg-white/10 p-4 rounded-2xl border border-white/10"><p class="text-[10px] font-bold opacity-60 uppercase">Juros Acumulados</p><p class="text-xl font-bold">${formatCurrency(projection.goalInfo.interestAtGoal)}</p></div>`;
+        } else {
+            fstt.innerText = "Simulação Estratégica";
+            fst.innerText = "A meta estabelecida ainda não foi atingida no período de 50 anos. Considere elevar o aporte mensal ou rentabilidades.";
+            det.innerHTML = '';
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function renderTableAndCharts() {
@@ -577,14 +509,33 @@
         renderCharts(p);
     }
 
+    function renderBankInputs() {
+        const container = document.getElementById('banks-container');
+        if (!container) return;
+        container.innerHTML = (state.banks || []).map((bank) => `
+            <div class="bank-entry bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border dark:border-slate-700 group" data-id="${bank.id}">
+                <div class="flex items-center justify-between mb-2">
+                    <input type="text" value="${bank.name}" data-field="name" class="bank-input bg-transparent border-none p-0 font-bold text-sm w-full focus:ring-0">
+                    <button data-id="${bank.id}" class="remove-bank-button text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" value="${formatNumberToInput(bank.balance)}" data-field="balance" class="bank-input w-full p-2 text-xs font-semibold" placeholder="Saldo Inicial">
+                    <input type="text" value="${formatNumberToInput(bank.yieldRate)}" data-field="yieldRate" class="bank-input w-full p-2 text-xs font-semibold" placeholder="Rent % Mensal">
+                    <input type="text" value="${bank.limit ? formatNumberToInput(bank.limit) : ''}" data-field="limit" placeholder="Limite Aporte (Opcional)" class="bank-input w-full p-2 text-xs col-span-2">
+                </div>
+            </div>`).join('');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
     function renderApp() { 
         updateTheme(); 
         renderBankInputs(); 
         renderGeneralInputs(); 
         renderEvents(); 
         renderTableAndCharts(); 
-        if (typeof lucide !== 'undefined') lucide.createIcons(); 
     }
+
+    // --- FIREBASE OPS ---
 
     async function loadState() {
         if (!currentUser) return;
@@ -593,27 +544,29 @@
             if (docSnap.exists()) { 
                 const d = docSnap.data(); 
                 state = { 
-                    banks: d.banks || getDefaultState().banks,
-                    events: d.events || [],
+                    banks: d.banks || getDefaultState().banks, 
+                    events: d.events || [], 
                     general: { ...getDefaultState().general, ...d.general } 
                 }; 
                 tableInputData = d.monthlyEdits || []; 
-            }
-            else { 
+            } else { 
                 state = getDefaultState(); 
                 tableInputData = []; 
             }
-        } catch (e) { 
-            console.error("Erro ao carregar dados do Firestore:", e); 
-        }
+        } catch (e) { console.error("Erro ao carregar do Firestore:", e); }
         renderApp();
     }
 
+    // ATUALIZADA: Esta função agora captura os dados de forma mais precisa
     function updateStateFromInputs() {
-        state.general.totalGoal = parseBrazilianNumber(document.getElementById('total-goal').value);
+        const totalGoalEl = document.getElementById('total-goal');
+        if (!totalGoalEl) return;
+
+        state.general.totalGoal = parseBrazilianNumber(totalGoalEl.value);
         state.general.defaultContribution = parseBrazilianNumber(document.getElementById('default-contribution').value);
         state.general.startDate = document.getElementById('projection-start-date').value || '';
         state.general.showUntilGoal = document.getElementById('show-until-goal').checked;
+        
         const newB = [];
         document.querySelectorAll('#banks-container .bank-entry').forEach(el => {
             const nameEl = el.querySelector('[data-field="name"]');
@@ -634,25 +587,27 @@
         
         const newE = [];
         document.querySelectorAll('#events-container .event-entry, #past-events-container .event-entry').forEach(el => {
-            newE.push({ id: parseInt(el.dataset.id), type: el.querySelector('[data-field="type"]').value, date: el.querySelector('[data-field="date"]').value, amount: parseBrazilianNumber(el.querySelector('[data-field="amount"]').value), bankId: parseInt(el.querySelector('[data-field="bankId"]')?.value || state.banks[0]?.id) });
+            const typeEl = el.querySelector('[data-field="type"]'), dateEl = el.querySelector('[data-field="date"]'), amtEl = el.querySelector('[data-field="amount"]');
+            if (typeEl && dateEl) { newE.push({ id: parseInt(el.dataset.id), type: typeEl.value, date: dateEl.value, amount: parseBrazilianNumber(amtEl.value), bankId: parseInt(el.querySelector('[data-field="bankId"]')?.value || state.banks[0]?.id) }); }
         });
         state.events = newE;
     }
 
     async function saveState() {
-        if (!currentUser) return; updateStateFromInputs();
+        if (!currentUser) return; 
+        updateStateFromInputs(); // Garante que capturamos o que foi digitado agora
         const sm = document.getElementById('status-message');
         try { 
             sm.textContent = 'A sincronizar com a nuvem...'; 
             await setDoc(doc(db, "users", currentUser.uid), { ...state, monthlyEdits: tableInputData }); 
             sm.textContent = 'Sincronizado com sucesso!'; 
             setTimeout(() => sm.textContent = '', 3000); 
+            renderTableAndCharts(); // Atualiza a tabela após salvar
         }
-        catch (e) { 
-            console.error("Erro ao salvar no Firestore:", e);
-            sm.textContent = 'Erro ao sincronizar dados.'; 
-        }
+        catch (e) { sm.textContent = 'Erro ao sincronizar dados.'; console.error(e); }
     }
+
+    // --- EVENT LISTENERS ---
 
     document.addEventListener('DOMContentLoaded', () => {
         setPersistence(auth, browserLocalPersistence).then(() => {
@@ -672,21 +627,20 @@
                     document.getElementById('app-container').classList.add('disabled');
                     state = getDefaultState(); renderApp();
                 }
-                if (typeof lucide !== 'undefined') lucide.createIcons();
             });
         });
 
         document.getElementById('auth-container').addEventListener('click', e => { if (e.target.closest('#login-button')) signInWithPopup(auth, provider); if (e.target.closest('#logout-button')) signOut(auth); });
         document.getElementById('dark-mode-toggle').addEventListener('click', () => { state.general.darkMode = !state.general.darkMode; updateTheme(); renderTableAndCharts(); });
-        document.getElementById('add-bank-button').addEventListener('click', () => { if (!state.banks) state.banks = []; state.banks.push({ id: Date.now(), name: 'Nova Conta', balance: 0, yieldRate: 1.0, limit: null }); renderBankInputs(); });
-        document.getElementById('add-event-button').addEventListener('click', () => { if (!state.events) state.events = []; state.events.push({ id: Date.now(), type: 'deposit', date: new Date().toISOString().slice(0, 7), amount: 0, bankId: state.banks[0]?.id }); renderEvents(); });
+        document.getElementById('add-bank-button').addEventListener('click', () => { if (!state.banks) state.banks = []; state.banks.push({ id: Date.now(), name: 'Nova Conta', balance: 0, yieldRate: 1.0, limit: null }); renderBankInputs(); renderTableAndCharts(); });
+        document.getElementById('add-event-button').addEventListener('click', () => { if (!state.events) state.events = []; state.events.push({ id: Date.now(), type: 'deposit', date: new Date().toISOString().slice(0, 7), amount: 0, bankId: state.banks[0]?.id }); renderEvents(); renderTableAndCharts(); });
         document.getElementById('banks-container').addEventListener('click', e => { const btn = e.target.closest('.remove-bank-button'); if (btn) { state.banks = state.banks.filter(b => b.id != btn.dataset.id); renderBankInputs(); renderTableAndCharts(); } });
         document.getElementById('events-container').addEventListener('click', e => { const btn = e.target.closest('.remove-event-button'); if (btn) { state.events = state.events.filter(ev => ev.id != btn.dataset.id); renderEvents(); renderTableAndCharts(); } });
         document.getElementById('past-events-toggle-container').addEventListener('click', e => { if (e.target.closest('#toggle-past-events')) { const past = document.getElementById('past-events-container'); past.classList.toggle('hidden'); if (typeof lucide !== 'undefined') lucide.createIcons(); } });
         document.getElementById('recalculate-button').addEventListener('click', () => { updateStateFromInputs(); renderTableAndCharts(); });
         document.getElementById('save-button').addEventListener('click', saveState);
         document.getElementById('export-csv-button').addEventListener('click', () => { const p = calculateProjection(); let csv = "Data,Banco,S.Ini,Aporte,Rent%,Rendimento,S.Fim\n"; p.results.forEach(m => { m.banks.forEach((b, i) => csv += `${m.date},${state.banks[i].name},${b.startBalance},${b.contribution},${b.yieldRate},${b.yieldAmount},${b.endBalance}\n`); }); const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'projecao.csv'; a.click(); });
-        document.getElementById('reset-button').addEventListener('click', () => { if(confirm('Resetar dados para o padrão?')) { state = getDefaultState(); tableInputData = []; renderApp(); } });
+        document.getElementById('reset-button').addEventListener('click', () => { if(confirm('Resetar dados?')) { state = getDefaultState(); tableInputData = []; renderApp(); } });
 
         document.getElementById('projection-table-body').addEventListener('change', e => {
             if (e.target.classList.contains('table-input')) {
