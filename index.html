@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- CSP REFORÇADA: Permissões amplas para evitar bloqueios de bibliotecas e recursos do Google/Firebase -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://*.jsdelivr.net https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://*.unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://*.jsdelivr.net https://*.unpkg.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com https://www.gstatic.com; frame-src https://*.firebaseapp.com; object-src 'none'; base-uri 'self';">
+  <!-- CSP AJUSTADA: Permissões explícitas para evitar bloqueios de scripts e conexões -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://*.jsdelivr.net https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://unpkg.com https://*.unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://cdn.jsdelivr.net https://*.jsdelivr.net https://unpkg.com https://*.unpkg.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com https://www.gstatic.com; frame-src https://*.firebaseapp.com; object-src 'none'; base-uri 'self';">
   <title>Patrimônio Pro | Gestão Financeira</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -306,7 +306,11 @@
     // --- UTILS ---
     const formatCurrency = (v) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const formatNumberToInput = (v) => (typeof v === 'number' ? v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
-    const parseBrazilianNumber = (s) => { if (!s || typeof s !== 'string') return 0; const sanitized = s.replace(/\./g, '').replace(',', '.'); return parseFloat(sanitized) || 0; };
+    const parseBrazilianNumber = (s) => { 
+        if (!s || typeof s !== 'string') return 0; 
+        const sanitized = s.replace(/\./g, '').replace(',', '.'); 
+        return parseFloat(sanitized) || 0; 
+    };
 
     function getDefaultState() {
         return {
@@ -316,7 +320,7 @@
         };
     }
 
-    // --- RENDERIZADORES CORE (Definidos no topo para evitar hoisting issues) ---
+    // --- FUNÇÕES DE RENDERIZAÇÃO (Definidas ANTES de serem chamadas) ---
 
     function updateTheme() { 
         if (state.general && state.general.darkMode) document.documentElement.classList.add('dark'); 
@@ -412,7 +416,11 @@
                     c = 0;
                     if (currDefC > 0) {
                         let target = -1;
-                        for (let k = 0; k < state.banks.length; k++) { if ((state.banks[k].limit === null || balances[k] < state.banks[k].limit) && (cOvr[k] === undefined || cOvr[k] === null)) { target = k; break; } }
+                        for (let k = 0; k < state.banks.length; k++) { 
+                            if ((state.banks[k].limit === null || balances[k] < state.banks[k].limit) && (cOvr[k] === undefined || cOvr[k] === null)) { 
+                                target = k; break; 
+                            } 
+                        }
                         if (j === target) c = currDefC;
                     }
                 }
@@ -480,7 +488,7 @@
                 <tr class="year-divider">
                     <td class="px-6 py-2 uppercase tracking-widest text-[9px] font-black text-white">Resumo Ano</td>
                     <td colspan="2" class="px-4 py-2 text-right text-[10px] font-bold text-white">Aportes: ${formatCurrency(yearlyC)}</td>
-                    <td colspan="2" class="px-4 py-2 text-right text-[10px] font-bold text-white">Juros: ${formatCurrency(yearlyI)}</td>
+                    <td colspan="2" class="px-4 py-2 text-right text-[10px] font-bold text-white">Juros ganhos: ${formatCurrency(yearlyI)}</td>
                     <td class="px-6 py-2 text-right text-[10px] font-black text-white">Patrimônio: ${formatCurrency(month.totalBalance)}</td>
                 </tr>`;
                 yearlyC = 0; yearlyI = 0;
@@ -527,6 +535,45 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
+    function renderGeneralInputs() {
+        const totalGoalEl = document.getElementById('total-goal');
+        const defaultContribEl = document.getElementById('default-contribution');
+        const startDateEl = document.getElementById('projection-start-date');
+        const showUntilGoalEl = document.getElementById('show-until-goal');
+
+        if (totalGoalEl) totalGoalEl.value = formatNumberToInput(state.general.totalGoal);
+        if (defaultContribEl) defaultContribEl.value = formatNumberToInput(state.general.defaultContribution);
+        if (startDateEl) startDateEl.value = state.general.startDate || '';
+        if (showUntilGoalEl) showUntilGoalEl.checked = state.general.showUntilGoal;
+    }
+
+    function renderEvents() {
+        const container = document.getElementById('events-container'), past = document.getElementById('past-events-container'), toggle = document.getElementById('past-events-toggle-container'), now = new Date().toISOString().slice(0, 7);
+        if (!container) return;
+        const all = (state.events || []).sort((a, b) => new Date(a.date) - new Date(b.date));
+        const future = all.filter(e => e.date >= now), prev = all.filter(e => e.date < now);
+
+        const item = (e) => {
+            const isContributionChange = e.type === 'contribution_change';
+            return `
+            <div class="grid grid-cols-4 gap-2 items-center p-2.5 bg-slate-50 dark:bg-slate-700/30 rounded-xl border dark:border-slate-700" data-id="${e.id}">
+                <input type="month" value="${e.date}" data-field="date" class="event-input text-[10px] p-2">
+                <input type="text" value="${formatNumberToInput(e.amount)}" data-field="amount" class="event-input text-right text-[10px] p-2 font-bold">
+                <select data-field="type" class="event-input text-[10px] p-2">
+                    <option value="deposit" ${e.type === 'deposit' ? 'selected' : ''}>Aporte Extra</option>
+                    <option value="withdrawal" ${e.type === 'withdrawal' ? 'selected' : ''}>Saque</option>
+                    <option value="contribution_change" ${isContributionChange ? 'selected' : ''}>Mudar Aporte</option>
+                </select>
+                <button data-id="${e.id}" class="remove-event-button text-red-500 text-[10px] font-bold">Remover</button>
+            </div>`;
+        };
+        
+        container.innerHTML = future.length ? future.map(item).join('') : '<p class="text-xs text-slate-400 italic text-center py-2">Nenhum evento futuro agendado.</p>';
+        past.innerHTML = prev.map(item).join('');
+        toggle.innerHTML = prev.length ? `<button id="toggle-past-events" class="w-full py-1.5 text-[10px] font-bold text-slate-400 flex items-center justify-center gap-1 hover:text-indigo-500 transition-colors"><i data-lucide="history" class="w-3 h-3"></i> Eventos Anteriores (${prev.length})</button>` : '';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
     function renderApp() { 
         updateTheme(); 
         renderBankInputs(); 
@@ -553,11 +600,14 @@
                 state = getDefaultState(); 
                 tableInputData = []; 
             }
-        } catch (e) { console.error("Erro ao carregar do Firestore:", e); }
-        renderApp();
+            renderApp();
+        } catch (e) { 
+            console.error("Erro ao carregar do Firestore:", e); 
+            state = getDefaultState();
+            renderApp();
+        }
     }
 
-    // ATUALIZADA: Esta função agora captura os dados de forma mais precisa
     function updateStateFromInputs() {
         const totalGoalEl = document.getElementById('total-goal');
         if (!totalGoalEl) return;
@@ -588,23 +638,34 @@
         const newE = [];
         document.querySelectorAll('#events-container .event-entry, #past-events-container .event-entry').forEach(el => {
             const typeEl = el.querySelector('[data-field="type"]'), dateEl = el.querySelector('[data-field="date"]'), amtEl = el.querySelector('[data-field="amount"]');
-            if (typeEl && dateEl) { newE.push({ id: parseInt(el.dataset.id), type: typeEl.value, date: dateEl.value, amount: parseBrazilianNumber(amtEl.value), bankId: parseInt(el.querySelector('[data-field="bankId"]')?.value || state.banks[0]?.id) }); }
+            if (typeEl && dateEl) { 
+                newE.push({ 
+                    id: parseInt(el.dataset.id), 
+                    type: typeEl.value, 
+                    date: dateEl.value, 
+                    amount: parseBrazilianNumber(amtEl.value), 
+                    bankId: parseInt(el.querySelector('[data-field="bankId"]')?.value || state.banks[0]?.id) 
+                }); 
+            }
         });
         state.events = newE;
     }
 
     async function saveState() {
         if (!currentUser) return; 
-        updateStateFromInputs(); // Garante que capturamos o que foi digitado agora
+        updateStateFromInputs();
         const sm = document.getElementById('status-message');
         try { 
             sm.textContent = 'A sincronizar com a nuvem...'; 
             await setDoc(doc(db, "users", currentUser.uid), { ...state, monthlyEdits: tableInputData }); 
             sm.textContent = 'Sincronizado com sucesso!'; 
             setTimeout(() => sm.textContent = '', 3000); 
-            renderTableAndCharts(); // Atualiza a tabela após salvar
+            renderTableAndCharts();
         }
-        catch (e) { sm.textContent = 'Erro ao sincronizar dados.'; console.error(e); }
+        catch (e) { 
+            sm.textContent = 'Erro ao sincronizar dados.'; 
+            console.error(e); 
+        }
     }
 
     // --- EVENT LISTENERS ---
@@ -614,35 +675,112 @@
             onAuthStateChanged(auth, user => {
                 if (user) {
                     currentUser = user;
-                    document.getElementById('auth-container').innerHTML = `
-                        <div class="flex items-center gap-3 bg-white dark:bg-slate-800 p-1.5 pr-4 rounded-2xl border dark:border-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-700">
-                            <img src="${user.photoURL}" class="w-8 h-8 rounded-xl object-cover border border-slate-200 dark:border-slate-600" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png'">
-                            <div class="hidden sm:block"><p class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1 tracking-wider">Usuário</p><p class="text-xs font-bold leading-none text-slate-700 dark:text-slate-200">${user.displayName}</p></div>
-                            <button id="logout-button" class="ml-2 text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i></button>
-                        </div>`;
-                    document.getElementById('app-container').classList.remove('disabled');
+                    const authCont = document.getElementById('auth-container');
+                    if (authCont) {
+                        authCont.innerHTML = `
+                            <div class="flex items-center gap-3 bg-white dark:bg-slate-800 p-1.5 pr-4 rounded-2xl border dark:border-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-700">
+                                <img src="${user.photoURL}" class="w-8 h-8 rounded-xl object-cover border border-slate-200 dark:border-slate-600" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png'">
+                                <div class="hidden sm:block"><p class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1 tracking-wider">Usuário</p><p class="text-xs font-bold leading-none text-slate-700 dark:text-slate-200">${user.displayName}</p></div>
+                                <button id="logout-button" class="ml-2 text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+                            </div>`;
+                    }
+                    const appCont = document.getElementById('app-container');
+                    if (appCont) appCont.classList.remove('disabled');
                     loadState();
                 } else {
-                    document.getElementById('auth-container').innerHTML = `<button id="login-button" class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 flex items-center gap-2 transition-all"><i data-lucide="log-in" class="w-4 h-4"></i> Entrar com Google</button>`;
-                    document.getElementById('app-container').classList.add('disabled');
-                    state = getDefaultState(); renderApp();
+                    currentUser = null;
+                    const authCont = document.getElementById('auth-container');
+                    if (authCont) {
+                        authCont.innerHTML = `<button id="login-button" class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 flex items-center gap-2 transition-all"><i data-lucide="log-in" class="w-4 h-4"></i> Entrar com Google</button>`;
+                    }
+                    const appCont = document.getElementById('app-container');
+                    if (appCont) appCont.classList.add('disabled');
+                    state = getDefaultState(); 
+                    renderApp();
                 }
             });
         });
 
-        document.getElementById('auth-container').addEventListener('click', e => { if (e.target.closest('#login-button')) signInWithPopup(auth, provider); if (e.target.closest('#logout-button')) signOut(auth); });
-        document.getElementById('dark-mode-toggle').addEventListener('click', () => { state.general.darkMode = !state.general.darkMode; updateTheme(); renderTableAndCharts(); });
-        document.getElementById('add-bank-button').addEventListener('click', () => { if (!state.banks) state.banks = []; state.banks.push({ id: Date.now(), name: 'Nova Conta', balance: 0, yieldRate: 1.0, limit: null }); renderBankInputs(); renderTableAndCharts(); });
-        document.getElementById('add-event-button').addEventListener('click', () => { if (!state.events) state.events = []; state.events.push({ id: Date.now(), type: 'deposit', date: new Date().toISOString().slice(0, 7), amount: 0, bankId: state.banks[0]?.id }); renderEvents(); renderTableAndCharts(); });
-        document.getElementById('banks-container').addEventListener('click', e => { const btn = e.target.closest('.remove-bank-button'); if (btn) { state.banks = state.banks.filter(b => b.id != btn.dataset.id); renderBankInputs(); renderTableAndCharts(); } });
-        document.getElementById('events-container').addEventListener('click', e => { const btn = e.target.closest('.remove-event-button'); if (btn) { state.events = state.events.filter(ev => ev.id != btn.dataset.id); renderEvents(); renderTableAndCharts(); } });
-        document.getElementById('past-events-toggle-container').addEventListener('click', e => { if (e.target.closest('#toggle-past-events')) { const past = document.getElementById('past-events-container'); past.classList.toggle('hidden'); if (typeof lucide !== 'undefined') lucide.createIcons(); } });
-        document.getElementById('recalculate-button').addEventListener('click', () => { updateStateFromInputs(); renderTableAndCharts(); });
-        document.getElementById('save-button').addEventListener('click', saveState);
-        document.getElementById('export-csv-button').addEventListener('click', () => { const p = calculateProjection(); let csv = "Data,Banco,S.Ini,Aporte,Rent%,Rendimento,S.Fim\n"; p.results.forEach(m => { m.banks.forEach((b, i) => csv += `${m.date},${state.banks[i].name},${b.startBalance},${b.contribution},${b.yieldRate},${b.yieldAmount},${b.endBalance}\n`); }); const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'projecao.csv'; a.click(); });
-        document.getElementById('reset-button').addEventListener('click', () => { if(confirm('Resetar dados?')) { state = getDefaultState(); tableInputData = []; renderApp(); } });
+        document.getElementById('auth-container')?.addEventListener('click', e => { 
+            if (e.target.closest('#login-button')) signInWithPopup(auth, provider); 
+            if (e.target.closest('#logout-button')) signOut(auth); 
+        });
 
-        document.getElementById('projection-table-body').addEventListener('change', e => {
+        document.getElementById('dark-mode-toggle')?.addEventListener('click', () => { 
+            state.general.darkMode = !state.general.darkMode; 
+            updateTheme(); 
+            renderTableAndCharts(); 
+        });
+
+        document.getElementById('add-bank-button')?.addEventListener('click', () => { 
+            if (!state.banks) state.banks = []; 
+            state.banks.push({ id: Date.now(), name: 'Nova Conta', balance: 0, yieldRate: 1.0, limit: null }); 
+            renderBankInputs(); 
+            renderTableAndCharts(); 
+        });
+
+        document.getElementById('add-event-button')?.addEventListener('click', () => { 
+            if (!state.events) state.events = []; 
+            state.events.push({ id: Date.now(), type: 'deposit', date: new Date().toISOString().slice(0, 7), amount: 0, bankId: state.banks[0]?.id }); 
+            renderEvents(); 
+            renderTableAndCharts(); 
+        });
+
+        document.getElementById('banks-container')?.addEventListener('click', e => { 
+            const btn = e.target.closest('.remove-bank-button'); 
+            if (btn) { 
+                state.banks = state.banks.filter(b => b.id != btn.dataset.id); 
+                renderBankInputs(); 
+                renderTableAndCharts(); 
+            } 
+        });
+
+        document.getElementById('events-container')?.addEventListener('click', e => { 
+            const btn = e.target.closest('.remove-event-button'); 
+            if (btn) { 
+                state.events = state.events.filter(ev => ev.id != btn.dataset.id); 
+                renderEvents(); 
+                renderTableAndCharts(); 
+            } 
+        });
+
+        document.getElementById('past-events-toggle-container')?.addEventListener('click', e => { 
+            if (e.target.closest('#toggle-past-events')) { 
+                const past = document.getElementById('past-events-container'); 
+                if (past) past.classList.toggle('hidden'); 
+                if (typeof lucide !== 'undefined') lucide.createIcons(); 
+            } 
+        });
+
+        document.getElementById('recalculate-button')?.addEventListener('click', () => { 
+            updateStateFromInputs(); 
+            renderTableAndCharts(); 
+        });
+
+        document.getElementById('save-button')?.addEventListener('click', saveState);
+
+        document.getElementById('export-csv-button')?.addEventListener('click', () => { 
+            const p = calculateProjection(); 
+            let csv = "Data,Banco,S.Ini,Aporte,Rent%,Rendimento,S.Fim\n"; 
+            p.results.forEach(m => { 
+                m.banks.forEach((b, i) => {
+                    csv += `${m.date},${state.banks[i].name},${b.startBalance},${b.contribution},${b.yieldRate},${b.yieldAmount},${b.endBalance}\n`;
+                });
+            }); 
+            const blob = new Blob([csv], { type: 'text/csv' }); 
+            const url = URL.createObjectURL(blob); 
+            const a = document.createElement('a'); a.href = url; a.download = 'projecao.csv'; a.click(); 
+        });
+
+        document.getElementById('reset-button')?.addEventListener('click', () => { 
+            if(confirm('Resetar dados para o padrão?')) { 
+                state = getDefaultState(); 
+                tableInputData = []; 
+                renderApp(); 
+            } 
+        });
+
+        document.getElementById('projection-table-body')?.addEventListener('change', e => {
             if (e.target.classList.contains('table-input')) {
                 const { monthIndex, bankIndex, field } = e.target.dataset;
                 const value = parseBrazilianNumber(e.target.value);
