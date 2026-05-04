@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
+  <!-- CSP CORRIGIDA: Adicionado cdn.jsdelivr.net e unpkg.com em connect-src e script-src -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://apis.google.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com https://www.gstatic.com; frame-src https://projecao-financeira-app.firebaseapp.com; object-src 'none'; base-uri 'self';">
   <title>Patrimônio Pro | Gestão Financeira</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -219,7 +220,7 @@
             <button id="recalculate-button" class="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 flex items-center gap-2">
                 <i data-lucide="refresh-cw" class="w-5 h-5"></i> Recalcular Projeção
             </button>
-            <button id="save-button" class="px-8 py-4 bg-slate-800 text-white rounded-2xl font-bold hover:bg-slate-900 flex items-center gap-2">
+            <button id="save-button" class="px-8 py-4 bg-slate-800 dark:bg-slate-700 text-white rounded-2xl font-bold hover:bg-slate-900 flex items-center gap-2">
                 <i data-lucide="cloud-upload" class="w-5 h-5"></i> Salvar na Nuvem
             </button>
             <button id="export-csv-button" class="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 flex items-center gap-2">
@@ -315,12 +316,16 @@
         };
     }
 
-    function renderApp() { updateTheme(); renderBankInputs(); renderGeneralInputs(); renderEvents(); renderTableAndCharts(); if (typeof lucide !== 'undefined') lucide.createIcons(); }
-
-    function updateTheme() { if (state.general.darkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); }
+    // --- FUNÇÕES DE RENDERIZAÇÃO ---
+    
+    function updateTheme() { 
+        if (state.general.darkMode) document.documentElement.classList.add('dark'); 
+        else document.documentElement.classList.remove('dark'); 
+    }
 
     function renderBankInputs() {
         const container = document.getElementById('banks-container');
+        if (!container) return;
         container.innerHTML = (state.banks || []).map((bank) => `
             <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border dark:border-slate-700 group" data-id="${bank.id}">
                 <div class="flex items-center justify-between mb-2">
@@ -345,6 +350,7 @@
 
     function renderEvents() {
         const container = document.getElementById('events-container'), past = document.getElementById('past-events-container'), toggle = document.getElementById('past-events-toggle-container'), now = new Date().toISOString().slice(0, 7);
+        if (!container) return;
         const all = (state.events || []).sort((a, b) => new Date(a.date) - new Date(b.date));
         const future = all.filter(e => e.date >= now), prev = all.filter(e => e.date < now);
 
@@ -369,8 +375,52 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
+    function renderCurrentMonthPanel(projection) {
+        const container = document.getElementById('current-month-summary');
+        if (!container) return;
+        const currentMonthStr = new Date().toISOString().slice(0, 7);
+        const currentMonthData = projection.results.find(r => r.monthStr === currentMonthStr);
+
+        if (currentMonthData) {
+            const totalContribution = currentMonthData.banks.reduce((sum, b) => sum + b.contribution, 0);
+            const totalInterest = currentMonthData.banks.reduce((sum, b) => sum + b.yieldAmount, 0);
+
+            container.innerHTML = `
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm transition-transform hover:scale-[1.02]">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-lg">
+                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aportado este Mês</span>
+                    </div>
+                    <p class="text-2xl font-extrabold text-slate-900 dark:text-white">${formatCurrency(totalContribution)}</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm transition-transform hover:scale-[1.02]">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-lg">
+                            <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Rendimento Gerado</span>
+                    </div>
+                    <p class="text-2xl font-extrabold text-indigo-600">${formatCurrency(totalInterest)}</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm card-gradient text-white !border-none transition-transform hover:scale-[1.02]">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 bg-white/20 text-white rounded-lg">
+                            <i data-lucide="wallet" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs font-bold text-white/70 uppercase tracking-wider">Saldo Final Previsto</span>
+                    </div>
+                    <p class="text-2xl font-extrabold">${formatCurrency(currentMonthData.totalBalance)}</p>
+                </div>
+            `;
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
     function renderTable(projection) {
         const tbody = document.getElementById('projection-table-body');
+        if (!tbody) return;
         let results = projection.results;
         if (state.general.showUntilGoal && projection.goalReached) results = results.slice(0, projection.totalMonthsToGoal);
 
@@ -388,7 +438,6 @@
             yearlyC += totalMonthlyC;
             yearlyI += totalMonthlyI;
 
-            // Linha do Mês (Totalizador)
             html += `
             <tr class="month-header-row ${isNow ? 'ring-2 ring-indigo-500 ring-inset z-10 relative' : ''} ${month.isGoalMonth ? 'bg-emerald-100 dark:bg-emerald-900/40' : ''}">
                 <td class="px-6 py-3 border-r dark:border-slate-700 text-indigo-600 font-bold">
@@ -404,7 +453,6 @@
                 <td class="px-6 py-3 text-right font-black text-slate-900 dark:text-white">${formatCurrency(month.totalBalance)}</td>
             </tr>`;
 
-            // Linhas dos Bancos individuais para o mês
             month.banks.forEach((b, bIdx) => {
                 html += `
                 <tr class="bank-row group">
@@ -421,7 +469,6 @@
                 </tr>`;
             });
 
-            // Divisor Anual
             if ((mIdx + 1) % 12 === 0) {
                 html += `
                 <tr class="year-divider">
@@ -439,7 +486,7 @@
 
         if (projection.goalReached) {
             fstt.innerText = "Objetivo Alcançado!";
-            fst.innerHTML = `Parabéns! Você irá atingir a sua meta de <strong>${formatCurrency(state.general.totalGoal)}</strong> em exatos <strong>${projection.goalInfo.years} anos e ${months} meses</strong>.`;
+            fst.innerHTML = `Parabéns! Você irá atingir a sua meta de <strong>${formatCurrency(state.general.totalGoal)}</strong> em exatos <strong>${projection.goalInfo.years} anos e ${projection.goalInfo.months} meses</strong>.`;
             det.innerHTML = `<div class="bg-white/10 p-4 rounded-2xl border border-white/10"><p class="text-[10px] font-bold opacity-60 uppercase">Aportes Totais</p><p class="text-xl font-bold">${formatCurrency(projection.goalInfo.contributedAtGoal)}</p></div><div class="bg-white/10 p-4 rounded-2xl border border-white/10"><p class="text-[10px] font-bold opacity-60 uppercase">Juros Acumulados</p><p class="text-xl font-bold">${formatCurrency(projection.goalInfo.interestAtGoal)}</p></div>`;
         } else {
             fstt.innerText = "Simulação Estratégica";
@@ -449,16 +496,10 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
-    function renderTableAndCharts() {
-        if (!currentUser) return;
-        const p = calculateProjection();
-        renderCurrentMonthPanel(p);
-        renderTable(p);
-        renderCharts(p);
-    }
-
     function renderCharts(p) {
-        const ctxE = document.getElementById('evolution-chart').getContext('2d'), ctxS = document.getElementById('summary-pie-chart').getContext('2d');
+        const ctxE = document.getElementById('evolution-chart')?.getContext('2d'), ctxS = document.getElementById('summary-pie-chart')?.getContext('2d');
+        if (!ctxE) return;
+        
         let res = p.results; if (state.general.showUntilGoal && p.goalReached) res = res.slice(0, p.totalMonthsToGoal);
         
         if (evolutionChartInstance) evolutionChartInstance.destroy();
@@ -468,6 +509,7 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10, weight: 'bold' } } }, x: { grid: { display: false }, ticks: { autoSkip: true, maxRotation: 0, font: { size: 10 } } } } }
         });
 
+        if (!ctxS) return;
         if (summaryPieChartInstance) summaryPieChartInstance.destroy();
         if (p.goalReached) {
             summaryPieChartInstance = new Chart(ctxS, {
@@ -477,6 +519,8 @@
             });
         }
     }
+
+    // --- LÓGICA CORE ---
 
     function calculateProjection() {
         let balances = (state.banks || []).map(b => b.balance);
@@ -523,6 +567,23 @@
             results.push(monthRes);
         }
         return { results, goalReached: goalR, goalInfo: goalI, totalMonthsToGoal: totalM };
+    }
+
+    function renderTableAndCharts() {
+        if (!currentUser) return;
+        const p = calculateProjection();
+        renderCurrentMonthPanel(p);
+        renderTable(p);
+        renderCharts(p);
+    }
+
+    function renderApp() { 
+        updateTheme(); 
+        renderBankInputs(); 
+        renderGeneralInputs(); 
+        renderEvents(); 
+        renderTableAndCharts(); 
+        if (typeof lucide !== 'undefined') lucide.createIcons(); 
     }
 
     async function loadState() {
