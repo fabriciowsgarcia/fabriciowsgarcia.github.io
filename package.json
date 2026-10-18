@@ -1,5 +1,12 @@
 {
+  "name": "patrimonio-pro",
+  "version": "2.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "firebase-admin": "^11.10.1"
+    "firebase-admin": "^13.0.0"
   }
 }
