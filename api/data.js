@@ -3,8 +3,8 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 
 // Campos que o app realmente usa. Qualquer outro campo enviado é descartado.
-const ARRAY_KEYS = ['banks', 'events', 'goals', 'scenarios', 'monthlyEdits'];
-const OBJECT_KEYS = ['actuals', 'general'];
+const ARRAY_KEYS = ['banks', 'events', 'goals', 'scenarios'];
+const OBJECT_KEYS = ['actuals', 'general', 'monthlyEdits'];
 // O Firestore limita cada documento a 1 MiB; deixamos uma folga.
 const MAX_BYTES = 900 * 1024;
 
