@@ -183,6 +183,17 @@
                     <div class="h-[280px]"><canvas id="bank-dist-chart"></canvas></div>
                 </div>
 
+                <!-- APORTE NECESSÁRIO -->
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <h2 class="text-xl font-bold flex items-center gap-2 mb-1"><i data-lucide="calculator" class="text-indigo-500"></i> Quanto preciso aportar?</h2>
+                    <p class="text-[11px] text-slate-400 mb-4">Calcula o aporte mensal necessário para atingir a meta no prazo escolhido, com suas contas, rentabilidades e eventos.</p>
+                    <div class="flex flex-wrap items-end gap-3">
+                        <div><label for="need-years" class="text-xs font-bold text-slate-400 mb-2 block">Prazo (anos)</label><input type="number" id="need-years" min="1" max="50" value="15" class="w-28 p-3 font-bold"></div>
+                        <button id="need-calc-button" class="px-5 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all">Calcular aporte</button>
+                    </div>
+                    <div id="need-result" class="mt-4 text-sm"></div>
+                </div>
+
                 <!-- METAS ADICIONAIS -->
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
                     <div class="flex items-center justify-between mb-4">
@@ -269,6 +280,10 @@
                             <div class="flex items-center gap-2 pt-1">
                                 <input type="checkbox" id="show-real-values" class="w-5 h-5 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500">
                                 <label for="show-real-values" class="text-sm font-semibold text-slate-600 dark:text-slate-300">Corrigir valores pela inflação (poder de compra de hoje)</label>
+                            </div>
+                            <div class="flex items-center gap-2 pt-1">
+                                <input type="checkbox" id="show-net-tax" class="w-5 h-5 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500">
+                                <label for="show-net-tax" class="text-sm font-semibold text-slate-600 dark:text-slate-300">Descontar IR (tabela regressiva, valor aproximado)</label>
                             </div>
                         </div>
                     </div>
@@ -413,6 +428,10 @@
                     <label class="text-xs font-bold text-slate-400 uppercase mb-2 block tracking-wider">Rentabilidade Mensal (%)</label>
                     <input type="text" id="withdrawal-yield-rate" class="w-full p-3 font-bold text-emerald-600">
                 </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase mb-2 block tracking-wider">Volatilidade Mensal (%)</label>
+                    <input type="text" id="withdrawal-volatility" value="3,00" class="w-full p-3 font-bold">
+                </div>
                 <div class="flex items-center gap-2 pt-6">
                     <input type="checkbox" id="withdrawal-adjust-inflation" class="w-5 h-5 rounded text-indigo-600 border-slate-300">
                     <label for="withdrawal-adjust-inflation" class="text-xs font-semibold text-slate-600 dark:text-slate-300">Reajustar a retirada pela inflação anual configurada em Acumulação</label>
@@ -421,6 +440,16 @@
             <button id="run-withdrawal-simulation" class="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700 flex items-center gap-2 transition-all">
                 <i data-lucide="play" class="w-5 h-5"></i> Simular
             </button>
+            <div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700">
+                <h3 class="text-lg font-bold mb-1">Independência financeira</h3>
+                <p class="text-sm text-slate-400 mb-4">Patrimônio necessário para viver de renda, pela taxa de retirada segura.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div><label for="fi-expense" class="text-xs font-bold text-slate-400 mb-2 block">Gasto mensal desejado (R$)</label><input type="text" id="fi-expense" class="w-full p-3 font-bold"></div>
+                    <div><label for="fi-rate" class="text-xs font-bold text-slate-400 mb-2 block">Taxa de retirada (% ao ano)</label><input type="text" id="fi-rate" value="4,00" class="w-full p-3 font-bold"></div>
+                    <button id="fi-calc-button" class="px-5 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all">Calcular</button>
+                </div>
+                <div id="fi-result" class="mt-4 text-sm"></div>
+            </div>
             <div id="withdrawal-result" class="mt-6 text-base"></div>
             <div class="h-[320px] mt-6"><canvas id="withdrawal-chart"></canvas></div>
         </div>
@@ -428,7 +457,7 @@
 
     </div>
     
-    <footer class="mt-16 pb-8 text-center no-print"><p class="text-slate-400 text-sm font-medium">Design by Fabrício Garcia &bull; Powered by DevFun</p></footer>
+    <footer class="mt-16 pb-8 text-center no-print"><p class="text-slate-400 text-sm font-medium">Design by Fabrício Garcia &bull; Powered by Gemini 2.5</p></footer>
   </div>
 
   <script type="module">
@@ -463,7 +492,7 @@
     // Escapa texto digitado pelo usuário antes de inserir em innerHTML.
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const compactBRL = (v) => { const a = Math.abs(v); if (a >= 1e6) return `R$ ${(v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`; if (a >= 1e3) return `R$ ${(v / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`; return `R$ ${Math.round(v)}`; };
-    let tableRange = 60, dirty = false;
+    let tableRange = 60, dirty = false, loadedOk = false;
     const BANK_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#14b8a6', '#8b5cf6', '#ef4444', '#0ea5e9'];
     let bankDistChartInstance = null;
     // Converte ajustes antigos (lista indexada por mês/posição da conta) para { 'AAAA-MM': { idDaConta: {...} } }.
@@ -520,7 +549,7 @@
     // Valor a exibir para o usuário: nominal ou corrigido pela inflação, conforme a config atual.
     function displayValue(monthRes) {
         if (!monthRes) return 0;
-        return state.general.showRealValues ? monthRes.realBalance : monthRes.totalBalance;
+        const v = state.general.showNetOfTax ? monthRes.netBalance : monthRes.totalBalance; return state.general.showRealValues ? v / monthRes.infl : v;
     }
 
     // --- RENDERIZADORES CORE ---
@@ -650,6 +679,7 @@
         if (!banks || banks.length === 0) return { results: [], goalReached: false };
         
         let balances = banks.map(b => b.balance);
+        const initialSum = balances.reduce((a, b) => a + b, 0);
         let currDefC = general.defaultContribution || 0;
         let totalC = 0;
         let totalI = 0;
@@ -701,9 +731,12 @@
             const totalB = balances.reduce((s, b) => s + b, 0);
             if (i > 0) inflationFactor *= monthlyInflation;
             const realB = totalB / inflationFactor;
-            const monthRes = { date: currD.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }), monthStr: mStr, banks: bankD, totalBalance: totalB, realBalance: realB, isGoalMonth: false, events: evs };
+            // Aproximação: tabela regressiva de IR aplicada ao ganho total, pela idade da projeção.
+            const irRate = i < 6 ? 0.225 : i < 12 ? 0.20 : i < 24 ? 0.175 : 0.15;
+            const netB = totalB - Math.max(totalB - initialSum - totalC, 0) * irRate;
+            const monthRes = { date: currD.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }), monthStr: mStr, banks: bankD, totalBalance: totalB, realBalance: realB, netBalance: netB, infl: inflationFactor, isGoalMonth: false, events: evs };
 
-            const checkValue = general.showRealValues ? realB : totalB;
+            const checkBase = general.showNetOfTax ? netB : totalB, checkValue = general.showRealValues ? checkBase / inflationFactor : checkBase;
             if (checkValue >= (general.totalGoal || Infinity) && !goalR) {
                 goalR = true; monthRes.isGoalMonth = true; totalM = i + 1;
                 goalI = { years: Math.floor(totalM/12), months: totalM%12, contributedAtGoal: totalC, interestAtGoal: totalI };
@@ -711,6 +744,23 @@
             results.push(monthRes);
         }
         return { results, goalReached: goalR, goalInfo: goalI, totalMonthsToGoal: totalM };
+    }
+
+    // Simula retiradas com rentabilidade aleatória (normal) e devolve a fração de execuções em que o saldo dura todo o período.
+    function monteCarloWithdrawal(initial, monthly, yieldRate, vol, adjust, annualInflation, months = 360, runs = 1000) {
+        const mi = Math.pow(1 + (annualInflation || 0) / 100, 1 / 12);
+        let survived = 0;
+        for (let r = 0; r < runs; r++) {
+            let b = initial, w = monthly, alive = true;
+            for (let i = 0; i < months; i++) {
+                const z = Math.sqrt(-2 * Math.log(Math.random() || 1e-9)) * Math.cos(2 * Math.PI * Math.random());
+                b = b * (1 + Math.max((yieldRate + vol * z) / 100, -0.99)) - w;
+                if (adjust) w *= mi;
+                if (b <= 0) { alive = false; break; }
+            }
+            if (alive) survived++;
+        }
+        return survived / runs;
     }
 
     function calculateWithdrawalSimulation(initialBalance, monthlyWithdrawal, monthlyYieldRate, adjustForInflation, annualInflation) {
@@ -942,6 +992,7 @@
         if (showUntilGoalEl) showUntilGoalEl.checked = state.general.showUntilGoal;
         if (inflationEl) inflationEl.value = formatNumberToInput(state.general.inflationRate || 0);
         if (showRealEl) showRealEl.checked = !!state.general.showRealValues;
+        const showNetEl = document.getElementById('show-net-tax'); if (showNetEl) showNetEl.checked = !!state.general.showNetOfTax;
     }
 
     function eventCardTemplate(e) {
@@ -1002,6 +1053,7 @@
         if (!currentUser) return;
         try {
             const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+            loadedOk = true;
             const defaults = getDefaultState();
             if (docSnap.exists()) { 
                 const d = docSnap.data(); 
@@ -1040,6 +1092,7 @@
         state.general.showUntilGoal = document.getElementById('show-until-goal').checked;
         state.general.inflationRate = parseBrazilianNumber(document.getElementById('inflation-rate')?.value) || 0;
         state.general.showRealValues = document.getElementById('show-real-values')?.checked || false;
+        state.general.showNetOfTax = document.getElementById('show-net-tax')?.checked || false;
         
         const newB = [];
         document.querySelectorAll('#banks-container .bank-entry').forEach(el => {
@@ -1090,8 +1143,8 @@
         try { 
             if (saveBtn) { saveBtn.disabled = true; saveBtn.classList.add('opacity-60', 'cursor-not-allowed'); }
             sm.textContent = 'A sincronizar com a nuvem...'; 
-            await setDoc(doc(db, "users", currentUser.uid), { ...state, monthlyEdits: tableInputData }); 
-            sm.textContent = 'Sincronizado com sucesso!'; dirty = false; 
+            await setDoc(doc(db, "users", currentUser.uid), { ...state, monthlyEdits: tableInputData, schemaVersion: 2 }); 
+            sm.textContent = `Salvo na nuvem às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`; dirty = false; 
             setTimeout(() => sm.textContent = '', 3000); 
             renderTableAndCharts();
         }
@@ -1337,10 +1390,38 @@
             }
         });
 
+        document.getElementById('need-calc-button')?.addEventListener('click', () => {
+            updateStateFromInputs();
+            const out = document.getElementById('need-result');
+            const years = Math.min(50, Math.max(1, parseInt(document.getElementById('need-years').value, 10) || 0));
+            const n = years * 12, goal = state.general.totalGoal || 0;
+            if (!goal) { out.textContent = 'Defina a meta financeira em Configurações.'; return; }
+            const finalAt = (c) => displayValue(calculateProjection(state.banks, { ...state.general, defaultContribution: c, totalGoal: Infinity }, false).results[n - 1]);
+            if (finalAt(0) >= goal) { out.innerHTML = `<span class="text-emerald-600 font-semibold">Sem novos aportes você já chega à meta em ${years} anos.</span>`; return; }
+            let lo = 0, hi = goal;
+            if (finalAt(hi) < goal) { out.innerHTML = `<span class="text-amber-600 font-semibold">Não é possível chegar à meta nesse prazo com as regras atuais (limites e datas de aporte das contas).</span>`; return; }
+            for (let k = 0; k < 40; k++) { const mid = (lo + hi) / 2; if (finalAt(mid) >= goal) hi = mid; else lo = mid; }
+            const diff = hi - (state.general.defaultContribution || 0);
+            out.innerHTML = `Aporte necessário: <strong class="text-indigo-600">${formatCurrency(Math.ceil(hi))}</strong> por mês durante ${years} anos. ` +
+                `Seu aporte padrão hoje é ${formatCurrency(state.general.defaultContribution)} (${diff > 0 ? `faltam ${formatCurrency(diff)} por mês` : `sobram ${formatCurrency(-diff)} por mês`}).`;
+        });
+
+        document.getElementById('fi-calc-button')?.addEventListener('click', () => {
+            const out = document.getElementById('fi-result');
+            const expense = parseBrazilianNumber(document.getElementById('fi-expense').value), rate = parseBrazilianNumber(document.getElementById('fi-rate').value);
+            if (!expense || !rate) { out.textContent = 'Informe o gasto mensal e a taxa de retirada.'; return; }
+            updateStateFromInputs();
+            const need = expense * 12 / (rate / 100);
+            const p = calculateProjection(), idx = p.results.findIndex(r => displayValue(r) >= need);
+            out.innerHTML = `Patrimônio necessário: <strong>${formatCurrency(need)}</strong>. ` + (idx >= 0
+                ? `Você chega lá em <strong>${p.results[idx].date}</strong> (${Math.floor((idx + 1) / 12)}a ${(idx + 1) % 12}m).`
+                : 'Não é alcançado em 50 anos com o cenário atual.');
+        });
+
         document.getElementById('table-range')?.addEventListener('change', e => { tableRange = parseInt(e.target.value, 10); renderTableAndCharts(); });
 
         // Recalcula sozinho ao editar contas, eventos e configurações (o botão Recalcular continua disponível).
-        const autoSel = '.bank-input, .event-input, #total-goal, #default-contribution, #projection-start-date, #show-until-goal, #inflation-rate, #show-real-values';
+        const autoSel = '.bank-input, .event-input, #total-goal, #default-contribution, #projection-start-date, #show-until-goal, #inflation-rate, #show-real-values, #show-net-tax';
         document.getElementById('app-container')?.addEventListener('change', e => {
             if (!e.target.matches(autoSel)) return;
             const renamedBank = e.target.matches('.bank-input[data-field="name"]');
@@ -1351,6 +1432,12 @@
 
         // Avisa antes de sair com alterações que ainda não foram salvas na nuvem.
         document.getElementById('app-container')?.addEventListener('input', () => { dirty = true; });
+        // Salva sozinho 4 s depois da última alteração (só depois de carregar os dados da nuvem com sucesso).
+        let autoSaveTimer;
+        document.getElementById('app-container')?.addEventListener('change', () => {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => { if (dirty && currentUser && loadedOk) saveState(); }, 4000);
+        });
         window.addEventListener('beforeunload', e => { if (dirty && currentUser) { e.preventDefault(); e.returnValue = ''; } });
 
         document.getElementById('export-csv-button')?.addEventListener('click', () => { 
@@ -1453,6 +1540,9 @@
                 const y = Math.floor(sim.depletedAt / 12), m = sim.depletedAt % 12;
                 resultEl.innerHTML = `<span class="text-amber-600 font-semibold">Seu patrimônio se esgota em aproximadamente ${y} anos e ${m} meses.</span>`;
             }
+            const vol = parseBrazilianNumber(document.getElementById('withdrawal-volatility')?.value);
+            const chance = monteCarloWithdrawal(initial, monthly, yieldRate, vol, adjustInflation, state.general.inflationRate || 0);
+            resultEl.innerHTML += `<p class="mt-2 text-slate-500 dark:text-slate-300">Chance de o patrimônio durar 30 anos (1.000 simulações, volatilidade de ${formatNumberToInput(vol)}% ao mês): <strong>${Math.round(chance * 100)}%</strong></p>`;
             const ctx = document.getElementById('withdrawal-chart')?.getContext('2d');
             if (ctx) {
                 if (withdrawalChartInstance) withdrawalChartInstance.destroy();
