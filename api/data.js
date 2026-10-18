@@ -1,75 +1,98 @@
-// Importa as ferramentas necessárias do Firebase Admin SDK
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
-// --- INÍCIO DA CONFIGURAÇÃO SEGURA ---
-let serviceAccount;
-try {
-  // Lê a chave de serviço diretamente da variável de ambiente da Vercel.
-  // O conteúdo deve ser o JSON completo, como uma string.
-  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-} catch (error) {
-  console.error("ERRO CRÍTICO: Falha ao analisar a chave de serviço do Firebase. Verifique a variável de ambiente na Vercel.", error);
-  // Se a chave falhar, não podemos continuar.
+
+// Campos que o app realmente usa. Qualquer outro campo enviado é descartado.
+const ARRAY_KEYS = ['banks', 'events', 'goals', 'scenarios', 'monthlyEdits'];
+const OBJECT_KEYS = ['actuals', 'general'];
+// O Firestore limita cada documento a 1 MiB; deixamos uma folga.
+const MAX_BYTES = 900 * 1024;
+
+// Inicializa o Firebase Admin sob demanda (evita quebrar o carregamento do módulo
+// quando a variável de ambiente está ausente ou inválida).
+function getServices() {
+  if (!getApps().length) {
+    const raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (!raw) throw new Error('Variável FIREBASE_SERVICE_ACCOUNT_KEY não definida.');
+    const key = JSON.parse(raw);
+    // A Vercel costuma gravar as quebras de linha da chave privada como "\\n".
+    if (key.private_key) key.private_key = key.private_key.replace(/\\n/g, '\n');
+    initializeApp({ credential: cert(key) });
+  }
+  return { db: getFirestore(), auth: getAuth() };
 }
-// --- FIM DA CONFIGURAÇÃO SEGURA ---
-// Inicializa o app do Firebase Admin (apenas se ainda não foi inicializado)
-if (serviceAccount && !getApps().length) {
-  initializeApp({
-    credential: cert(serviceAccount)
-  });
+
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+// Valida o formato e o tamanho do corpo. Retorna null se for inválido.
+function sanitize(body) {
+  if (!isPlainObject(body)) return null;
+  const clean = {};
+  for (const key of ARRAY_KEYS) {
+    if (!(key in body)) continue;
+    if (!Array.isArray(body[key])) return null;
+    clean[key] = body[key];
+  }
+  for (const key of OBJECT_KEYS) {
+    if (!(key in body)) continue;
+    if (!isPlainObject(body[key])) return null;
+    clean[key] = body[key];
+  }
+  if (Buffer.byteLength(JSON.stringify(clean)) > MAX_BYTES) return null;
+  return clean;
 }
-// Pega as instâncias do banco de dados e da autenticação
-const db = getFirestore();
-const auth = getAuth();
-// A função principal que lida com os pedidos
+
 export default async function handler(request, response) {
-  // Verifica se a chave de serviço foi carregada corretamente
-  if (!serviceAccount) {
-      return response.status(500).send('Erro de configuração do servidor: Chave do Firebase não encontrada.');
+  response.setHeader('Cache-Control', 'no-store');
+
+  if (request.method !== 'GET' && request.method !== 'POST') {
+    response.setHeader('Allow', 'GET, POST');
+    return response.status(405).json({ error: 'Método não permitido.' });
   }
-  // Verifica se o usuário enviou um token de autenticação
-  if (!request.headers.authorization || !request.headers.authorization.startsWith('Bearer ')) {
-    return response.status(401).send('Authorization token missing or invalid.');
-  }
-  const idToken = request.headers.authorization.split('Bearer ')[1];
-  let decodedToken;
-  // Verifica se o token é válido e pega o ID do usuário
+
+  let db, auth;
   try {
-    decodedToken = await auth.verifyIdToken(idToken);
+    ({ db, auth } = getServices());
   } catch (error) {
-    console.error('Error verifying auth token:', error);
-    return response.status(403).send('Invalid authentication token.');
+    console.error('Falha ao inicializar o Firebase Admin:', error);
+    return response.status(500).json({ error: 'Erro de configuração do servidor.' });
   }
-  
-  const userId = decodedToken.uid;
-  const docRef = db.collection('users').doc(userId);
-  // Se for um pedido GET, carrega os dados
+
+  const header = request.headers.authorization || '';
+  if (!header.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'Token de autenticação ausente.' });
+  }
+
+  let uid;
+  try {
+    ({ uid } = await auth.verifyIdToken(header.slice('Bearer '.length)));
+  } catch (error) {
+    console.error('Token inválido:', error.code || error.message);
+    return response.status(401).json({ error: 'Token de autenticação inválido ou expirado.' });
+  }
+
+  const docRef = db.collection('users').doc(uid);
+
   if (request.method === 'GET') {
     try {
-      const docSnap = await docRef.get();
-      if (docSnap.exists) {
-        return response.status(200).json(docSnap.data());
-      } else {
-        // Se não houver dados, retorna um objeto vazio
-        return response.status(200).json({});
-      }
+      const snap = await docRef.get();
+      return response.status(200).json(snap.exists ? snap.data() : {});
     } catch (error) {
-      console.error('Error getting document:', error);
-      return response.status(500).send('Failed to retrieve data.');
+      console.error('Erro ao ler documento:', error);
+      return response.status(500).json({ error: 'Falha ao carregar os dados.' });
     }
   }
-  // Se for um pedido POST, salva os dados
-  if (request.method === 'POST') {
-    try {
-      const dataToSave = request.body;
-      await docRef.set(dataToSave);
-      return response.status(200).send('Data saved successfully.');
-    } catch (error) {
-      console.error('Error setting document:', error);
-      return response.status(500).send('Failed to save data.');
-    }
+
+  // POST
+  const data = sanitize(request.body);
+  if (!data) {
+    return response.status(400).json({ error: 'Dados inválidos ou grandes demais.' });
   }
-  // Se for qualquer outro tipo de pedido, retorna um erro
-  return response.status(405).send('Method Not Allowed');
+  try {
+    await docRef.set({ ...data, updatedAt: FieldValue.serverTimestamp() });
+    return response.status(200).json({ ok: true });
+  } catch (error) {
+    console.error('Erro ao salvar documento:', error);
+    return response.status(500).json({ error: 'Falha ao salvar os dados.' });
+  }
 }
