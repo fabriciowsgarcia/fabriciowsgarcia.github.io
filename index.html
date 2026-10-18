@@ -174,6 +174,15 @@
                     </div>
                 </div>
 
+                <!-- DISTRIBUIÇÃO POR CONTA -->
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="pie-chart" class="text-indigo-500"></i> Distribuição por Conta</h2>
+                        <span id="bank-dist-label" class="text-xs font-semibold text-slate-400"></span>
+                    </div>
+                    <div class="h-[280px]"><canvas id="bank-dist-chart"></canvas></div>
+                </div>
+
                 <!-- METAS ADICIONAIS -->
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
                     <div class="flex items-center justify-between mb-4">
@@ -324,6 +333,8 @@
                 <i data-lucide="upload" class="w-5 h-5"></i> Importar CSV
                 <input type="file" id="import-csv-input" accept=".csv" class="hidden">
             </label>
+            <button id="export-json-button" class="px-6 py-4 bg-slate-700 text-white rounded-2xl font-bold hover:bg-slate-800 flex items-center justify-center gap-2 transition-all"><i data-lucide="database-backup" class="w-5 h-5"></i> Backup</button>
+            <label class="px-6 py-4 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-100 rounded-2xl font-bold hover:bg-slate-300 flex items-center justify-center gap-2 transition-all cursor-pointer"><i data-lucide="archive-restore" class="w-5 h-5"></i> Restaurar<input type="file" id="import-json-input" accept=".json" class="hidden"></label>
             <button id="download-csv-template-button" class="px-4 py-4 text-slate-400 font-semibold text-xs hover:text-indigo-500 underline">Baixar modelo CSV</button>
             <button id="reset-button" class="px-8 py-4 text-red-500 font-bold ml-auto hover:bg-red-50 rounded-2xl transition-colors">Resetar</button>
         </div>
@@ -417,7 +428,7 @@
 
     </div>
     
-    <footer class="mt-16 pb-8 text-center no-print"><p class="text-slate-400 text-sm font-medium">Design by Fabrício Garcia &bull; Powered by Gemini 2.5</p></footer>
+    <footer class="mt-16 pb-8 text-center no-print"><p class="text-slate-400 text-sm font-medium">Design by Fabrício Garcia &bull; Powered by DevFun</p></footer>
   </div>
 
   <script type="module">
@@ -441,7 +452,7 @@
     const provider = new GoogleAuthProvider();
 
     let state = { banks: [], events: [], goals: [], scenarios: [], actuals: {}, general: {} };
-    let tableInputData = [];
+    let tableInputData = {};
     let currentUser = null;
     let evolutionChartInstance = null;
     let summaryPieChartInstance = null;
@@ -453,6 +464,26 @@
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const compactBRL = (v) => { const a = Math.abs(v); if (a >= 1e6) return `R$ ${(v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`; if (a >= 1e3) return `R$ ${(v / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`; return `R$ ${Math.round(v)}`; };
     let tableRange = 60, dirty = false;
+    const BANK_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#14b8a6', '#8b5cf6', '#ef4444', '#0ea5e9'];
+    let bankDistChartInstance = null;
+    // Converte ajustes antigos (lista indexada por mês/posição da conta) para { 'AAAA-MM': { idDaConta: {...} } }.
+    function migrateEdits(edits, st) {
+        if (!edits) return {};
+        if (!Array.isArray(edits)) return edits;
+        const out = {};
+        const [y, m] = (st.general.startDate || toMonthStr(new Date())).split('-').map(Number);
+        edits.forEach((e, i) => {
+            if (!e) return;
+            const ms = toMonthStr(new Date(y, m - 1 + i, 1));
+            ['contributions', 'yieldRates'].forEach(k => (e[k] || []).forEach((v, j) => {
+                if (v == null || !st.banks[j]) return;
+                if (!out[ms]) out[ms] = {};
+                if (!out[ms][st.banks[j].id]) out[ms][st.banks[j].id] = {};
+                out[ms][st.banks[j].id][k === 'contributions' ? 'contribution' : 'yieldRate'] = v;
+            }));
+        });
+        return out;
+    }
 
     // --- UTILS ---
     const formatCurrency = (v) => `R$ ${(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -639,7 +670,7 @@
                 else if (e.type === 'contribution_change') currDefC = amt;
             });
 
-            const mInps = useOverrides ? (tableInputData[i] || {}) : {}, cOvr = mInps.contributions ?? [], yOvr = mInps.yieldRates ?? [], bankD = [];
+            const mo = useOverrides ? (tableInputData[mStr] || {}) : {}, cOvr = banks.map(b => mo[b.id]?.contribution ?? null), yOvr = banks.map(b => mo[b.id]?.yieldRate ?? null), bankD = [];
             
             let targetIdx = -1;
             if (currDefC > 0) {
@@ -795,8 +826,8 @@
                 <tr class="bank-row group">
                     <td class="px-8 py-2 border-r dark:border-slate-700 text-[10px] font-bold text-slate-500 uppercase tracking-tighter italic">└ ${esc(state.banks[bIdx].name)}</td>
                     <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-slate-400 text-[11px]">${formatCurrency(b.startBalance)}</td>
-                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-emerald-500/70 text-[11px] font-medium editable-cell"><input type="text" value="${formatNumberToInput(b.contribution)}" data-month-index="${mIdx}" data-bank-index="${bIdx}" data-field="contribution" class="table-input"></td>
-                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-indigo-500/70 text-[11px] font-medium editable-cell"><input type="text" value="${formatNumberToInput(b.yieldRate)}" data-month-index="${mIdx}" data-bank-index="${bIdx}" data-field="yieldRate" class="table-input"></td>
+                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-emerald-500/70 text-[11px] font-medium editable-cell"><input type="text" value="${formatNumberToInput(b.contribution)}" data-month="${month.monthStr}" data-bank-id="${state.banks[bIdx].id}" data-field="contribution" class="table-input"></td>
+                    <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-indigo-500/70 text-[11px] font-medium editable-cell"><input type="text" value="${formatNumberToInput(b.yieldRate)}" data-month="${month.monthStr}" data-bank-id="${state.banks[bIdx].id}" data-field="yieldRate" class="table-input"></td>
                     <td class="px-4 py-2 text-right border-r dark:border-slate-700 text-purple-400 text-[11px]">+ ${formatCurrency(b.yieldAmount)}</td>
                     <td class="px-6 py-2 text-right text-slate-400 text-[11px]">${formatCurrency(b.endBalance)}</td>
                 </tr>`;
@@ -828,12 +859,32 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
+    function renderBankDistribution(p) {
+        const ctx = document.getElementById('bank-dist-chart')?.getContext('2d');
+        if (!ctx || !p.results || !p.results.length) return;
+        const m = p.goalReached ? p.results[p.totalMonthsToGoal - 1] : p.results[p.results.length - 1];
+        const label = document.getElementById('bank-dist-label');
+        if (label) label.textContent = `${p.goalReached ? 'Na meta' : 'No fim da projeção'}: ${m.date}`;
+        const k = state.general.showRealValues && m.totalBalance ? m.realBalance / m.totalBalance : 1;
+        const data = m.banks.map(b => Math.max(b.endBalance * k, 0)), total = data.reduce((a, b) => a + b, 0);
+        const isDark = document.documentElement.classList.contains('dark');
+        if (bankDistChartInstance) bankDistChartInstance.destroy();
+        bankDistChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: state.banks.map(b => b.name), datasets: [{ data, backgroundColor: state.banks.map((_, i) => BANK_COLORS[i % BANK_COLORS.length]), borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: {
+                legend: { position: 'bottom', labels: { color: isDark ? '#cbd5e1' : '#475569', boxWidth: 12, font: { size: 11, weight: 'bold' } } },
+                tooltip: { callbacks: { label: c => ` ${c.label}: ${formatCurrency(c.parsed)} (${total ? (c.parsed / total * 100).toFixed(1).replace('.', ',') : 0}%)` } } } }
+        });
+    }
+
     function renderTableAndCharts() {
         if (!currentUser) return;
         const p = calculateProjection();
         renderCurrentMonthPanel(p);
         renderTable(p);
         renderCharts(p);
+        renderBankDistribution(p);
         renderGoals(p);
     }
 
@@ -966,10 +1017,10 @@
                     actuals: d.actuals || {},
                     general: { ...defaults.general, ...d.general } 
                 }; 
-                tableInputData = d.monthlyEdits || []; 
+                tableInputData = migrateEdits(d.monthlyEdits, state); 
             } else { 
                 state = defaults; 
-                tableInputData = []; 
+                tableInputData = {}; 
             }
             renderApp();
         } catch (e) { 
@@ -1255,6 +1306,37 @@
 
         document.getElementById('save-button')?.addEventListener('click', saveState);
 
+        document.getElementById('export-json-button')?.addEventListener('click', () => {
+            updateStateFromInputs();
+            const payload = { app: 'patrimonio-pro', version: 2, exportedAt: new Date().toISOString(), state, monthlyEdits: tableInputData };
+            const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+            const a = document.createElement('a'); a.href = url; a.download = `backup_patrimonio_pro_${toMonthStr(new Date())}.json`; a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('import-json-input')?.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const data = JSON.parse(await file.text());
+                if (data.app !== 'patrimonio-pro' || !data.state || !Array.isArray(data.state.banks)) throw new Error('formato');
+                if (confirm('Substituir os dados atuais pelo backup? Use "Salvar na Nuvem" depois para confirmar.')) {
+                    const defaults = getDefaultState();
+                    state = { ...defaults, ...data.state, general: { ...defaults.general, ...data.state.general } };
+                    tableInputData = migrateEdits(data.monthlyEdits, state);
+                    dirty = true;
+                    renderApp();
+                    const sm = document.getElementById('status-message');
+                    sm.textContent = 'Backup restaurado. Salve na nuvem para manter as alterações.';
+                    setTimeout(() => sm.textContent = '', 5000);
+                }
+            } catch (err) {
+                alert('Arquivo de backup inválido.');
+            } finally {
+                e.target.value = '';
+            }
+        });
+
         document.getElementById('table-range')?.addEventListener('change', e => { tableRange = parseInt(e.target.value, 10); renderTableAndCharts(); });
 
         // Recalcula sozinho ao editar contas, eventos e configurações (o botão Recalcular continua disponível).
@@ -1342,20 +1424,18 @@
         document.getElementById('reset-button')?.addEventListener('click', () => { 
             if(confirm('Resetar dados para o padrão? Esta ação não pode ser desfeita.')) { 
                 state = getDefaultState(); 
-                tableInputData = []; 
+                tableInputData = {}; 
                 renderApp(); 
             } 
         });
 
         document.getElementById('projection-table-body')?.addEventListener('change', e => {
             if (e.target.classList.contains('table-input')) {
-                const { monthIndex, bankIndex, field } = e.target.dataset;
+                const { month, bankId, field } = e.target.dataset;
                 const value = parseBrazilianNumber(e.target.value);
-                const mIdx = parseInt(monthIndex), bIdx = parseInt(bankIndex);
-                while (tableInputData.length <= mIdx) tableInputData.push({});
-                const fieldKey = field === 'contribution' ? 'contributions' : 'yieldRates';
-                if (!tableInputData[mIdx][fieldKey]) tableInputData[mIdx][fieldKey] = Array(state.banks.length).fill(null);
-                tableInputData[mIdx][fieldKey][bIdx] = value;
+                if (!tableInputData[month]) tableInputData[month] = {};
+                if (!tableInputData[month][bankId]) tableInputData[month][bankId] = {};
+                tableInputData[month][bankId][field] = value;
                 renderTableAndCharts();
             }
         });
