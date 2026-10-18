@@ -54,6 +54,7 @@
     .table-container {
       max-height: 75vh;
       overflow-y: auto;
+      overflow-x: auto;
       scrollbar-width: thin;
       scrollbar-color: #cbd5e1 transparent;
     }
@@ -96,6 +97,11 @@
       max-height: 3000px;
     }
     
+    [class*="text-[9px]"], [class*="text-[10px]"], [class*="text-[11px]"] { font-size: 12px !important; }
+    html:not(.dark) .text-slate-400 { color: #64748b; }
+    .editable-cell input { border-bottom: 1px dashed #94a3b8 !important; }
+    summary::-webkit-details-marker { display: none; }
+    .menu-item { @apply w-full text-left px-3 py-2 rounded-xl text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer; }
     .card-gradient {
         background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
     }
@@ -142,20 +148,34 @@
     </header>
 
     <!-- TABS DE MODO -->
-    <div class="flex gap-3 mb-6 no-print" id="view-mode-tabs">
+    <div class="hidden flex gap-3 mb-6 no-print" id="view-mode-tabs">
         <button class="tab-button active" data-mode="accumulation">Acumulação</button>
         <button class="tab-button" data-mode="withdrawal">Modo Retirada</button>
     </div>
 
-    <div id="app-container" class="disabled space-y-8">
+    <section id="welcome-panel" class="hidden max-w-2xl mx-auto text-center bg-white dark:bg-slate-800 p-10 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
+      <h2 class="text-2xl font-extrabold mb-2">Veja quando você chega à sua meta</h2>
+      <p class="text-slate-500 dark:text-slate-300 mb-6">Cadastre suas contas, defina a meta e o aporte mensal e acompanhe a evolução do patrimônio mês a mês. Seus dados ficam salvos na sua conta Google.</p>
+      <button id="welcome-login-button" class="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700 inline-flex items-center gap-2 transition-all"><i data-lucide="log-in" class="w-5 h-5"></i> Entrar com Google</button>
+    </section>
+
+    <div id="app-container" class="hidden disabled space-y-8">
 
       <!-- VISÃO: ACUMULAÇÃO -->
       <div id="accumulation-view" class="space-y-8">
+
+        <div id="onboarding-card" class="hidden bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-3xl p-5 flex items-start justify-between gap-4 no-print">
+            <div><p class="font-bold text-indigo-900 dark:text-indigo-100 mb-1">Primeiros passos</p>
+            <p class="text-sm text-indigo-800 dark:text-indigo-200">1. Ajuste suas contas, com saldo e rentabilidade mensal. 2. Defina a meta e o aporte mensal logo abaixo dos cartões. 3. Veja no gráfico quando você chega lá.</p></div>
+            <button id="onboarding-dismiss" class="text-sm font-bold text-indigo-700 dark:text-indigo-200 whitespace-nowrap">Entendi</button>
+        </div>
 
         <!-- DASHBOARD ATUAL -->
         <section id="current-month-summary" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             <!-- Cards de resumo gerados via JS -->
         </section>
+
+        <section id="quick-settings" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm"></section>
 
         <!-- CONFIGURAÇÕES RECOLHÍVEIS -->
         <section class="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -167,7 +187,7 @@
                             <i data-lucide="bar-chart-3" class="text-indigo-500"></i>
                             Evolução Patrimonial
                         </h2>
-                        <span id="inflation-badge" class="hidden text-[9px] font-bold text-amber-600 uppercase bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-lg">Corrigido pela inflação</span>
+                        <select id="chart-range" aria-label="Período do gráfico" class="ml-auto mr-2 p-2 text-xs"><option value="60">5 anos</option><option value="120">10 anos</option><option value="240" selected>20 anos</option><option value="0">Tudo</option></select><span id="inflation-badge" class="hidden text-[9px] font-bold text-amber-600 uppercase bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-lg">Corrigido pela inflação</span>
                     </div>
                     <div class="h-[350px]">
                         <canvas id="evolution-chart"></canvas>
@@ -328,39 +348,36 @@
         </section>
 
         <!-- BOTÕES DE AÇÃO -->
-        <div class="flex flex-wrap gap-3 no-print">
-            <button id="recalculate-button" class="px-6 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 flex items-center justify-center gap-2 transition-all">
-                <i data-lucide="refresh-cw" class="w-5 h-5"></i> Recalcular
-            </button>
-            <button id="save-button" class="px-6 py-4 bg-slate-800 text-white rounded-2xl font-bold hover:bg-slate-900 flex items-center justify-center gap-2 transition-all">
-                <i data-lucide="cloud-upload" class="w-5 h-5"></i> Salvar na Nuvem
-            </button>
-            <button id="export-csv-button" class="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 flex items-center justify-center gap-2 transition-all">
-                <i data-lucide="download" class="w-5 h-5"></i> CSV
-            </button>
-            <button id="export-xlsx-button" class="px-6 py-4 bg-teal-600 text-white rounded-2xl font-bold hover:bg-teal-700 flex items-center justify-center gap-2 transition-all">
-                <i data-lucide="file-spreadsheet" class="w-5 h-5"></i> XLSX
-            </button>
-            <button id="export-pdf-button" class="px-6 py-4 bg-slate-600 text-white rounded-2xl font-bold hover:bg-slate-700 flex items-center justify-center gap-2 transition-all">
-                <i data-lucide="printer" class="w-5 h-5"></i> PDF
-            </button>
-            <label class="px-6 py-4 bg-amber-500 text-white rounded-2xl font-bold hover:bg-amber-600 flex items-center justify-center gap-2 transition-all cursor-pointer">
-                <i data-lucide="upload" class="w-5 h-5"></i> Importar CSV
-                <input type="file" id="import-csv-input" accept=".csv" class="hidden">
-            </label>
-            <button id="export-json-button" class="px-6 py-4 bg-slate-700 text-white rounded-2xl font-bold hover:bg-slate-800 flex items-center justify-center gap-2 transition-all"><i data-lucide="database-backup" class="w-5 h-5"></i> Backup</button>
-            <label class="px-6 py-4 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-100 rounded-2xl font-bold hover:bg-slate-300 flex items-center justify-center gap-2 transition-all cursor-pointer"><i data-lucide="archive-restore" class="w-5 h-5"></i> Restaurar<input type="file" id="import-json-input" accept=".json" class="hidden"></label>
-            <button id="download-csv-template-button" class="px-4 py-4 text-slate-400 font-semibold text-xs hover:text-indigo-500 underline">Baixar modelo CSV</button>
-            <button id="reset-button" class="px-8 py-4 text-red-500 font-bold ml-auto hover:bg-red-50 rounded-2xl transition-colors">Resetar</button>
+        <div id="action-bar" class="flex flex-wrap items-center gap-3 no-print">
+            <button id="save-button" class="px-6 py-3.5 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 flex items-center gap-2 transition-all"><i data-lucide="cloud-upload" class="w-5 h-5"></i> Salvar na nuvem</button>
+            <details class="relative">
+                <summary class="list-none cursor-pointer px-5 py-3.5 rounded-2xl font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2"><i data-lucide="download" class="w-5 h-5"></i> Exportar <i data-lucide="chevron-down" class="w-4 h-4"></i></summary>
+                <div class="absolute left-0 mt-2 w-56 z-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl p-2 flex flex-col">
+                    <button id="export-csv-button" class="menu-item"><i data-lucide="file-text" class="w-4 h-4"></i> CSV</button>
+                    <button id="export-xlsx-button" class="menu-item"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Excel (XLSX)</button>
+                    <button id="export-pdf-button" class="menu-item"><i data-lucide="printer" class="w-4 h-4"></i> PDF / Imprimir</button>
+                </div>
+            </details>
+            <details class="relative">
+                <summary class="list-none cursor-pointer px-5 py-3.5 rounded-2xl font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2"><i data-lucide="database" class="w-5 h-5"></i> Dados <i data-lucide="chevron-down" class="w-4 h-4"></i></summary>
+                <div class="absolute left-0 mt-2 w-64 z-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl p-2 flex flex-col">
+                    <button id="export-json-button" class="menu-item"><i data-lucide="database-backup" class="w-4 h-4"></i> Fazer backup (JSON)</button>
+                    <label class="menu-item"><i data-lucide="archive-restore" class="w-4 h-4"></i> Restaurar backup<input type="file" id="import-json-input" accept=".json" class="hidden"></label>
+                    <label class="menu-item"><i data-lucide="upload" class="w-4 h-4"></i> Importar eventos (CSV)<input type="file" id="import-csv-input" accept=".csv" class="hidden"></label>
+                    <button id="download-csv-template-button" class="menu-item"><i data-lucide="file-down" class="w-4 h-4"></i> Baixar modelo de CSV</button>
+                    <hr class="my-1 border-slate-100 dark:border-slate-700">
+                    <button id="reset-button" class="menu-item !text-red-500"><i data-lucide="rotate-ccw" class="w-4 h-4"></i> Resetar dados</button>
+                </div>
+            </details>
         </div>
 
-        <div id="status-message" class="text-center text-sm font-semibold text-slate-500 italic"></div>
+        <div id="status-message" role="status" aria-live="polite" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-lg empty:hidden no-print"></div>
 
         <!-- TABELA REESTRUTURADA (VERTICAL) -->
         <section class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
             <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/30">
                 <h2 class="text-xl font-bold">Detalhamento da Projeção</h2>
-                <label class="flex items-center gap-2 text-xs font-semibold text-slate-500 no-print">Exibir <select id="table-range" class="p-2 text-xs"><option value="12">12 meses</option><option value="24">24 meses</option><option value="60" selected>5 anos</option><option value="120">10 anos</option><option value="0">Tudo</option></select></label>
+                <div class="flex items-center gap-3 no-print"><select id="table-view" aria-label="Tipo de visão da tabela" class="p-2 text-xs"><option value="yearly" selected>Resumo por ano</option><option value="monthly">Detalhe por mês (editável)</option></select><label class="flex items-center gap-2 text-xs font-semibold text-slate-500">Exibir <select id="table-range" class="p-2 text-xs"><option value="12">12 meses</option><option value="24">24 meses</option><option value="60">5 anos</option><option value="120">10 anos</option><option value="240" selected>20 anos</option><option value="0">Tudo</option></select></label></div>
             </div>
             <div class="table-container">
               <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700 border-collapse table-fixed">
@@ -492,7 +509,7 @@
     // Escapa texto digitado pelo usuário antes de inserir em innerHTML.
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const compactBRL = (v) => { const a = Math.abs(v); if (a >= 1e6) return `R$ ${(v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`; if (a >= 1e3) return `R$ ${(v / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`; return `R$ ${Math.round(v)}`; };
-    let tableRange = 60, dirty = false, loadedOk = false;
+    let tableRange = 240, tableView = 'yearly', chartRange = 240, dirty = false, loadedOk = false;
     const BANK_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#14b8a6', '#8b5cf6', '#ef4444', '#0ea5e9'];
     let bankDistChartInstance = null;
     // Converte ajustes antigos (lista indexada por mês/posição da conta) para { 'AAAA-MM': { idDaConta: {...} } }.
@@ -588,25 +605,27 @@
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm transition-transform hover:scale-[1.02]">
                     <div class="flex items-center gap-3 mb-2">
                         <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-lg"><i data-lucide="plus-circle" class="w-5 h-5"></i></div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aportado este Mês</span>
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aportado em ${currentMonthData.date}</span>
                     </div>
                     <p class="text-2xl font-extrabold text-slate-900 dark:text-white">${formatCurrency(totalContribution)}</p>
                 </div>
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm transition-transform hover:scale-[1.02]">
                     <div class="flex items-center gap-3 mb-2">
                         <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-lg"><i data-lucide="pie-chart" class="w-5 h-5"></i></div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Rendimento Gerado</span>
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Rendimento em ${currentMonthData.date}</span>
                     </div>
                     <p class="text-2xl font-extrabold text-indigo-600">${formatCurrency(totalInterest)}</p>
                 </div>
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm card-gradient text-white !border-none transition-transform hover:scale-[1.02]">
                     <div class="flex items-center gap-3 mb-2">
                         <div class="p-2 bg-white/20 text-white rounded-lg"><i data-lucide="wallet" class="w-5 h-5"></i></div>
-                        <span class="text-xs font-bold text-white/70 uppercase tracking-wider">Saldo Final Previsto</span>
+                        <span class="text-xs font-bold text-white/70 uppercase tracking-wider">Saldo previsto em ${currentMonthData.date}</span>
                     </div>
                     <p class="text-2xl font-extrabold">${formatCurrency(displayValue(currentMonthData))}</p>
                 </div>
                 ${goalProgressCard(projection)}`;
+        } else {
+            container.innerHTML = goalProgressCard(projection);
         }
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
@@ -616,6 +635,7 @@
         if (!ctxE || !p.results) return;
         
         let res = p.results; if (state.general.showUntilGoal && p.goalReached) res = res.slice(0, p.totalMonthsToGoal);
+        if (chartRange > 0) res = res.slice(0, chartRange);
 
         const datasets = [{
             label: 'Patrimônio (Atual)',
@@ -838,6 +858,25 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
+    function buildYearlyRows(results) {
+        const years = {};
+        results.forEach(m => { const y = m.monthStr.slice(0, 4); (years[y] = years[y] || []).push(m); });
+        return Object.entries(years).map(([y, ms]) => {
+            const start = ms[0].banks.reduce((t, b) => t + b.startBalance, 0);
+            const contrib = ms.reduce((t, m) => t + m.banks.reduce((a, b) => a + b.contribution, 0), 0);
+            const interest = ms.reduce((t, m) => t + m.banks.reduce((a, b) => a + b.yieldAmount, 0), 0);
+            const hasGoal = ms.some(m => m.isGoalMonth);
+            return `<tr class="month-header-row ${hasGoal ? 'bg-emerald-100 dark:bg-emerald-900/40' : ''}">
+                <td class="px-6 py-3 text-indigo-600 font-bold">${y}${ms.length < 12 ? ` <span class="text-xs font-normal text-slate-400">(${ms.length} meses)</span>` : ''}${hasGoal ? ' <span class="ml-2 text-xs font-bold text-emerald-600">Meta atingida</span>' : ''}</td>
+                <td class="px-4 py-3 text-right text-slate-400 text-xs font-semibold">${formatCurrency(start)}</td>
+                <td class="px-4 py-3 text-right text-emerald-600 text-xs font-extrabold">${formatCurrency(contrib)}</td>
+                <td class="px-4 py-3 text-right text-slate-300 text-xs">—</td>
+                <td class="px-4 py-3 text-right text-purple-600 text-xs font-bold">+ ${formatCurrency(interest)}</td>
+                <td class="px-6 py-3 text-right font-black text-slate-900 dark:text-white">${formatCurrency(displayValue(ms[ms.length - 1]))}</td>
+            </tr>`;
+        }).join('');
+    }
+
     function renderTable(projection) {
         const tbody = document.getElementById('projection-table-body');
         if (!tbody || !projection.results) return;
@@ -894,6 +933,7 @@
                 yearlyC = 0; yearlyI = 0;
             }
         });
+        if (tableView === 'yearly') html = buildYearlyRows(results);
         tbody.innerHTML = html;
         
         const fst = document.getElementById('final-summary-text'), fstt = document.getElementById('final-summary-title'), det = document.getElementById('summary-details');
@@ -1194,7 +1234,9 @@
                             </div>`;
                     }
                     const appCont = document.getElementById('app-container');
-                    if (appCont) appCont.classList.remove('disabled');
+                    if (appCont) appCont.classList.remove('disabled', 'hidden');
+                    document.getElementById('welcome-panel')?.classList.add('hidden');
+                    document.getElementById('view-mode-tabs')?.classList.remove('hidden');
                     loadState();
                 } else {
                     currentUser = null;
@@ -1203,7 +1245,9 @@
                         authCont.innerHTML = `<button id="login-button" class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 flex items-center gap-2 transition-all"><i data-lucide="log-in" class="w-4 h-4"></i> Entrar com Google</button>`;
                     }
                     const appCont = document.getElementById('app-container');
-                    if (appCont) appCont.classList.add('disabled');
+                    if (appCont) appCont.classList.add('disabled', 'hidden');
+                    document.getElementById('welcome-panel')?.classList.remove('hidden');
+                    document.getElementById('view-mode-tabs')?.classList.add('hidden');
                     state = getDefaultState(); 
                     renderApp();
                 }
@@ -1417,6 +1461,25 @@
                 ? `Você chega lá em <strong>${p.results[idx].date}</strong> (${Math.floor((idx + 1) / 12)}a ${(idx + 1) % 12}m).`
                 : 'Não é alcançado em 50 anos com o cenário atual.');
         });
+
+        // Meta e aporte ficam em destaque, logo abaixo dos cartões.
+        const quick = document.getElementById('quick-settings');
+        ['total-goal', 'default-contribution'].forEach(id => { const w = document.getElementById(id)?.parentElement?.parentElement; if (quick && w) quick.appendChild(w); });
+
+        document.getElementById('welcome-login-button')?.addEventListener('click', () => signInWithPopup(auth, provider));
+        try { if (!localStorage.getItem('pp_onboarded')) document.getElementById('onboarding-card')?.classList.remove('hidden'); } catch (err) { /* sem storage */ }
+        document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {
+            document.getElementById('onboarding-card')?.classList.add('hidden');
+            try { localStorage.setItem('pp_onboarded', '1'); } catch (err) { /* sem storage */ }
+        });
+
+        // Fecha os menus Exportar/Dados ao escolher uma opção ou clicar fora.
+        document.addEventListener('click', e => setTimeout(() => {
+            document.querySelectorAll('#action-bar details[open]').forEach(d => { if (!d.contains(e.target) || e.target.closest('button, label')) d.removeAttribute('open'); });
+        }, 250));
+
+        document.getElementById('table-view')?.addEventListener('change', e => { tableView = e.target.value; renderTableAndCharts(); });
+        document.getElementById('chart-range')?.addEventListener('change', e => { chartRange = parseInt(e.target.value, 10); renderTableAndCharts(); });
 
         document.getElementById('table-range')?.addEventListener('change', e => { tableRange = parseInt(e.target.value, 10); renderTableAndCharts(); });
 
