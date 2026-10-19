@@ -422,6 +422,7 @@
       <!-- VISÃO: MODO RETIRADA -->
       <div id="budget-view" class="hidden space-y-6">
         <section id="budget-summary" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6"></section>
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm"><h2 class="text-xl font-bold mb-1">Fluxo dos próximos 12 meses</h2><p class="text-sm text-slate-500 dark:text-slate-300 mb-4">Inclui despesas pontuais, parcelas e reajustes anuais.</p><div class="h-[260px]"><canvas id="cashflow-chart"></canvas></div></div>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2 space-y-6">
             <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -436,7 +437,7 @@
             </div>
           </div>
           <div class="space-y-6">
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm"><h2 class="text-xl font-bold mb-4">Despesas por categoria</h2><div class="h-[260px]"><canvas id="expense-chart"></canvas></div></div>
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm"><h2 class="text-xl font-bold mb-4">Despesas por categoria e tetos</h2><div class="h-[260px]"><canvas id="expense-chart"></canvas></div><div id="budget-limits" class="mt-4 divide-y divide-slate-100 dark:divide-slate-700"></div></div>
             <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm"><h2 class="text-xl font-bold mb-3">Do orçamento para o plano</h2><div id="budget-actions" class="space-y-3 text-sm"></div></div>
           </div>
         </div>
@@ -497,7 +498,7 @@
 
     </div>
     
-    <footer class="mt-16 pb-8 text-center no-print"><p class="text-slate-400 text-sm font-medium">Design by Fabrício Garcia &bull; Powered by Gemini 2.5</p></footer>
+    <footer class="mt-16 pb-8 text-center no-print"><p class="text-slate-400 text-sm font-medium">Powered by FABRIX &bull; Technology &amp; Innovation</p></footer>
   </div>
 
   <script type="module">
@@ -566,7 +567,7 @@
             goals: [],
             scenarios: [],
             actuals: {},
-            cashflow: [], general: { totalGoal: 1000000, defaultContribution: 5000, startDate: toMonthStr(new Date()), showUntilGoal: false, darkMode: false, inflationRate: 0, showRealValues: false }
+            cashflow: [], budgetLimits: {}, general: { totalGoal: 1000000, defaultContribution: 5000, startDate: toMonthStr(new Date()), showUntilGoal: false, darkMode: false, inflationRate: 0, showRealValues: false }
         };
     }
 
@@ -1104,12 +1105,26 @@
     const CF_CARD = 'bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm';
     let budgetChartInstance = null;
     const toast = (msg) => { const sm = document.getElementById('status-message'); if (!sm) return; sm.textContent = msg; setTimeout(() => sm.textContent = '', 4000); };
-    const cfActive = (i, ym) => (!i.start || i.start <= ym) && (!i.end || i.end >= ym);
+    const monthDiff = (a, b) => (parseInt(b.slice(0, 4), 10) - parseInt(a.slice(0, 4), 10)) * 12 + parseInt(b.slice(5, 7), 10) - parseInt(a.slice(5, 7), 10);
+    // Mensal recorrente (início/fim), pontual (só no mês de início) ou parcelada (N meses a partir do início).
+    function cfActive(i, ym) {
+        const k = i.kind || 'recurring';
+        if (!i.start) return k === 'recurring' && (!i.end || i.end >= ym);
+        const d = monthDiff(i.start, ym);
+        if (d < 0) return false;
+        if (k === 'once') return d === 0;
+        if (k === 'installment') return d < (i.installments || 1);
+        return !i.end || i.end >= ym;
+    }
+    // Valor do mês, já com o reajuste anual (aplicado a cada 12 meses desde o início).
+    const cfAmount = (i, ym) => !cfActive(i, ym) ? 0 : (i.amount || 0) * Math.pow(1 + (i.growth || 0) / 100, Math.floor(Math.max(monthDiff(i.start || ym, ym), 0) / 12));
+    const cfTotals = (ym) => { const r = { inc: 0, exp: 0 }; (state.cashflow || []).forEach(i => { r[i.type === 'income' ? 'inc' : 'exp'] += cfAmount(i, ym); }); return r; };
+    const cfNext12 = () => Array.from({ length: 12 }, (_, k) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + k); const ym = toMonthStr(d); return { ym, ...cfTotals(ym) }; });
+    let flowChartInstance = null;
 
     function renderBudget() {
         const list = state.cashflow || [], ym = toMonthStr(new Date());
-        const total = (t) => list.filter(i => i.type === t && cfActive(i, ym)).reduce((a, i) => a + (i.amount || 0), 0);
-        const inc = total('income'), exp = total('expense'), left = inc - exp, rate = inc > 0 ? (left / inc) * 100 : 0;
+        const { inc, exp } = cfTotals(ym), left = inc - exp, rate = inc > 0 ? (left / inc) * 100 : 0;
         const kpi = (label, value, color, icon) => `<div class="${CF_CARD}"><div class="flex items-center gap-3 mb-2"><div class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 ${color}"><i data-lucide="${icon}" class="w-5 h-5"></i></div><span class="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wider">${label}</span></div><p class="text-2xl font-extrabold ${color}">${value}</p></div>`;
         document.getElementById('budget-summary').innerHTML =
             kpi('Receitas do mês', formatCurrency(inc), 'text-emerald-600', 'arrow-down-circle') +
@@ -1117,14 +1132,19 @@
             kpi('Sobra mensal', formatCurrency(left), left >= 0 ? 'text-emerald-600' : 'text-rose-600', 'wallet') +
             kpi('Taxa de poupança', `${rate.toFixed(1).replace('.', ',')}%`, 'text-indigo-600', 'piggy-bank');
 
-        const row = (i) => `<div class="grid grid-cols-2 md:grid-cols-12 gap-2 items-end py-3 border-b border-slate-100 dark:border-slate-700 last:border-0" data-cf-id="${esc(i.id)}">
+        const row = (i) => { const k = i.kind || 'recurring'; return `<div class="grid grid-cols-2 md:grid-cols-12 gap-2 items-end py-3 border-b border-slate-100 dark:border-slate-700 last:border-0" data-cf-id="${esc(i.id)}">
             <div class="col-span-2 md:col-span-3"><label class="text-xs font-semibold text-slate-500 block mb-1">Descrição</label><input type="text" class="cf-input w-full p-2 text-sm" data-field="name" value="${esc(i.name)}"></div>
             <div class="md:col-span-2"><label class="text-xs font-semibold text-slate-500 block mb-1">Categoria</label><select class="cf-input w-full p-2 text-sm" data-field="category">${CF_CATS[i.type].map(c => `<option ${c === i.category ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
-            <div class="md:col-span-2"><label class="text-xs font-semibold text-slate-500 block mb-1">Valor mensal (R$)</label><input type="text" inputmode="decimal" class="cf-input w-full p-2 text-sm font-bold" data-field="amount" value="${formatNumberToInput(i.amount || 0)}"></div>
-            <div class="md:col-span-2"><label class="text-xs font-semibold text-slate-500 block mb-1">Início</label><input type="month" class="cf-input w-full p-2 text-sm" data-field="start" value="${esc(i.start || '')}"></div>
-            <div class="md:col-span-2"><label class="text-xs font-semibold text-slate-500 block mb-1">Fim (opcional)</label><input type="month" class="cf-input w-full p-2 text-sm" data-field="end" value="${esc(i.end || '')}"></div>
+            <div class="md:col-span-2"><label class="text-xs font-semibold text-slate-500 block mb-1">${k === 'installment' ? 'Valor da parcela (R$)' : 'Valor (R$)'}</label><input type="text" inputmode="decimal" class="cf-input w-full p-2 text-sm font-bold" data-field="amount" value="${formatNumberToInput(i.amount || 0)}"></div>
+            <div class="md:col-span-2"><label class="text-xs font-semibold text-slate-500 block mb-1">${k === 'once' ? 'Mês' : 'Início'}</label><input type="month" class="cf-input w-full p-2 text-sm" data-field="start" value="${esc(i.start || '')}"></div>
+            <div class="md:col-span-2"><label class="text-xs font-semibold text-slate-500 block mb-1">Fim (opcional)</label><input type="month" class="cf-input w-full p-2 text-sm disabled:opacity-40" data-field="end" value="${esc(i.end || '')}" ${k !== 'recurring' ? 'disabled' : ''}></div>
             <button class="cf-remove md:col-span-1 p-2 text-slate-400 hover:text-red-500 justify-self-end" aria-label="Remover"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-        </div>`;
+            <div class="col-span-2 md:col-span-12 grid grid-cols-3 gap-2">
+                <div><label class="text-xs font-semibold text-slate-500 block mb-1">Tipo</label><select class="cf-input w-full p-2 text-sm" data-field="kind"><option value="recurring" ${k === 'recurring' ? 'selected' : ''}>Mensal</option><option value="once" ${k === 'once' ? 'selected' : ''}>Pontual</option><option value="installment" ${k === 'installment' ? 'selected' : ''}>Parcelada</option></select></div>
+                <div><label class="text-xs font-semibold text-slate-500 block mb-1">Nº de parcelas</label><input type="number" min="1" class="cf-input w-full p-2 text-sm disabled:opacity-40" data-field="installments" value="${k === 'installment' ? (i.installments || 1) : ''}" ${k !== 'installment' ? 'disabled' : ''}></div>
+                <div><label class="text-xs font-semibold text-slate-500 block mb-1">Reajuste anual (%)</label><input type="text" inputmode="decimal" class="cf-input w-full p-2 text-sm" data-field="growth" value="${formatNumberToInput(i.growth || 0)}"></div>
+            </div>
+        </div>`; };
         ['income', 'expense'].forEach(t => {
             const items = list.filter(i => i.type === t);
             document.getElementById(`${t}-list`).innerHTML = items.map(row).join('') ||
@@ -1132,7 +1152,13 @@
         });
 
         const byCat = {};
-        list.filter(i => i.type === 'expense' && cfActive(i, ym)).forEach(i => { byCat[i.category] = (byCat[i.category] || 0) + (i.amount || 0); });
+        list.filter(i => i.type === 'expense').forEach(i => { byCat[i.category] = (byCat[i.category] || 0) + cfAmount(i, ym); });
+        Object.keys(byCat).forEach(c => { if (!byCat[c]) delete byCat[c]; });
+        const limits = state.budgetLimits || {};
+        document.getElementById('budget-limits').innerHTML = CF_CATS.expense.map(c => {
+            const spent = byCat[c] || 0, l = limits[c] || 0, pct = l > 0 ? (spent / l) * 100 : 0, color = pct > 100 ? 'bg-rose-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500';
+            return `<div class="py-2"><div class="flex items-center justify-between gap-2 text-sm"><span class="font-semibold w-28 shrink-0">${c}</span><span class="text-xs text-slate-500 dark:text-slate-300">${formatCurrency(spent)} de</span><input type="text" inputmode="decimal" class="cf-limit w-24 p-1.5 text-sm text-right" data-cat="${c}" value="${l ? formatNumberToInput(l) : ''}" placeholder="Teto" aria-label="Teto de ${c}"></div>${l > 0 ? `<div class="h-1.5 mt-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden"><div class="h-full ${color}" style="width:${Math.min(pct, 100)}%"></div></div><p class="text-xs mt-1 ${pct > 100 ? 'text-rose-600 font-semibold' : 'text-slate-500'}">${pct > 100 ? `Acima do teto em ${formatCurrency(spent - l)}` : `${pct.toFixed(0)}% do teto`}</p>` : ''}</div>`;
+        }).join('');
         const ctx = document.getElementById('expense-chart')?.getContext('2d');
         if (ctx) {
             if (budgetChartInstance) budgetChartInstance.destroy();
@@ -1144,10 +1170,21 @@
                     tooltip: { callbacks: { label: c => ` ${c.label}: ${formatCurrency(c.parsed)} (${exp ? (c.parsed / exp * 100).toFixed(1).replace('.', ',') : 0}%)` } } } } });
         }
 
+        const n12 = cfNext12(), avgLeft = n12.reduce((a, m) => a + m.inc - m.exp, 0) / 12;
+        const fctx = document.getElementById('cashflow-chart')?.getContext('2d');
+        if (fctx) {
+            if (flowChartInstance) flowChartInstance.destroy();
+            const dk = document.documentElement.classList.contains('dark'), tc = dk ? '#94a3b8' : '#64748b';
+            flowChartInstance = new Chart(fctx, { type: 'bar',
+                data: { labels: n12.map(m => `${m.ym.slice(5)}/${m.ym.slice(2, 4)}`), datasets: [{ label: 'Receitas', data: n12.map(m => m.inc), backgroundColor: '#10b981' }, { label: 'Despesas', data: n12.map(m => m.exp), backgroundColor: '#f43f5e' }] },
+                options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { labels: { color: tc, boxWidth: 12, font: { size: 11, weight: 'bold' } } }, tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${formatCurrency(c.parsed.y)}` } } },
+                    scales: { y: { ticks: { color: tc, callback: v => compactBRL(v) }, grid: { color: dk ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' } }, x: { ticks: { color: tc }, grid: { display: false } } } } });
+        }
         const contrib = state.general.defaultContribution || 0;
         document.getElementById('budget-actions').innerHTML = `
-            <p>Seu aporte padrão hoje é <strong>${formatCurrency(contrib)}</strong>. ${inc === 0 ? 'Cadastre suas receitas para comparar.' : left >= contrib ? 'Sua sobra cobre o aporte.' : 'Sua sobra é menor que o aporte: revise as despesas ou o valor do aporte.'}</p>
-            <button id="cf-apply-contribution" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all">Usar a sobra (${formatCurrency(Math.max(left, 0))}) como aporte mensal</button>
+            <p>Seu aporte padrão hoje é <strong>${formatCurrency(contrib)}</strong>. ${inc === 0 ? 'Cadastre suas receitas para comparar.' : avgLeft >= contrib ? 'A sobra média dos próximos 12 meses cobre o aporte.' : 'A sobra média dos próximos 12 meses é menor que o aporte: revise as despesas ou o valor do aporte.'}</p>
+            <button id="cf-apply-contribution" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all">Usar a sobra média (${formatCurrency(Math.max(avgLeft, 0))}) como aporte mensal</button>
             <p class="text-slate-500 dark:text-slate-300">Reserva de emergência sugerida (6 meses de despesas): <strong>${formatCurrency(exp * 6)}</strong></p>
             <button id="cf-apply-fi" class="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-600 transition-all">Usar as despesas na independência financeira</button>`;
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1183,6 +1220,7 @@
                     events: (d.events || []).map(e => ({ repeat: 'none', repeatUntil: '', ...e })), 
                     goals: d.goals || [],
                     cashflow: d.cashflow || [],
+                    budgetLimits: d.budgetLimits || {},
                     scenarios: d.scenarios || [],
                     actuals: d.actuals || {},
                     general: { ...defaults.general, ...d.general } 
@@ -1564,9 +1602,12 @@
         const budgetView = document.getElementById('budget-view');
         const touch = () => { dirty = true; budgetView.dispatchEvent(new Event('change', { bubbles: true })); };
         budgetView?.addEventListener('change', e => {
+            const lm = e.target.closest?.('.cf-limit');
+            if (lm) { state.budgetLimits = state.budgetLimits || {}; state.budgetLimits[lm.dataset.cat] = parseBrazilianNumber(lm.value) || 0; dirty = true; renderBudget(); return; }
             const el = e.target.closest?.('.cf-input'); if (!el) return;
             const item = state.cashflow.find(i => i.id === el.closest('[data-cf-id]').dataset.cfId); if (!item) return;
-            item[el.dataset.field] = el.dataset.field === 'amount' ? parseBrazilianNumber(el.value) : el.value;
+            const f = el.dataset.field;
+            item[f] = (f === 'amount' || f === 'growth') ? (parseBrazilianNumber(el.value) || 0) : f === 'installments' ? Math.max(parseInt(el.value, 10) || 1, 1) : el.value;
             dirty = true; renderBudget();
         });
         budgetView?.addEventListener('click', e => {
@@ -1574,7 +1615,7 @@
             if (add) {
                 const t = add.id === 'add-income' ? 'income' : 'expense';
                 const first = !state.cashflow.some(i => i.type === t);
-                state.cashflow.push({ id: 'cf' + Date.now(), type: t, name: t === 'income' ? (first ? 'Salário' : 'Outro ganho') : 'Nova despesa', category: CF_CATS[t][0], amount: 0, start: toMonthStr(new Date()), end: '' });
+                state.cashflow.push({ id: 'cf' + Date.now(), type: t, name: t === 'income' ? (first ? 'Salário' : 'Outro ganho') : 'Nova despesa', category: CF_CATS[t][0], amount: 0, start: toMonthStr(new Date()), end: '', kind: 'recurring', installments: 1, growth: 0 });
                 renderBudget(); touch(); return;
             }
             const rm = e.target.closest('.cf-remove');
@@ -1582,14 +1623,14 @@
                 state.cashflow = state.cashflow.filter(i => i.id !== rm.closest('[data-cf-id]').dataset.cfId);
                 renderBudget(); touch(); return;
             }
-            const ym = toMonthStr(new Date()), sum = (t) => state.cashflow.filter(i => i.type === t && cfActive(i, ym)).reduce((a, i) => a + (i.amount || 0), 0);
+            const t0 = cfTotals(toMonthStr(new Date())), n12 = cfNext12();
             if (e.target.closest('#cf-apply-contribution')) {
-                document.getElementById('default-contribution').value = formatNumberToInput(Math.max(sum('income') - sum('expense'), 0));
+                document.getElementById('default-contribution').value = formatNumberToInput(Math.max(n12.reduce((a, m) => a + m.inc - m.exp, 0) / 12, 0));
                 updateStateFromInputs(); renderTableAndCharts(); renderBudget(); touch();
-                toast('Aporte mensal atualizado com a sua sobra.');
+                toast('Aporte mensal atualizado com a sua sobra média.');
             }
             if (e.target.closest('#cf-apply-fi')) {
-                document.getElementById('fi-expense').value = formatNumberToInput(sum('expense'));
+                document.getElementById('fi-expense').value = formatNumberToInput(t0.exp);
                 toast('Despesas enviadas ao cálculo de independência financeira (Modo Retirada).');
             }
         });
