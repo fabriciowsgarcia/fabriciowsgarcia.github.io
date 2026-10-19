@@ -149,10 +149,11 @@
     </header>
 
     <!-- TABS DE MODO -->
-    <div class="hidden flex gap-3 mb-6 no-print" id="view-mode-tabs">
-        <button class="tab-button active" data-mode="accumulation">Acumulação</button>
+    <div class="hidden flex flex-wrap gap-3 mb-6 no-print" id="view-mode-tabs">
+        <button class="tab-button active" data-mode="accumulation">Visão geral</button>
+        <button class="tab-button" data-mode="plan">Plano</button>
         <button class="tab-button" data-mode="budget">Orçamento</button>
-        <button class="tab-button" data-mode="withdrawal">Modo Retirada</button>
+        <button class="tab-button" data-mode="withdrawal">Aposentadoria</button>
     </div>
 
     <section id="welcome-panel" class="hidden max-w-2xl mx-auto text-center bg-white dark:bg-slate-800 p-10 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -294,7 +295,7 @@
                 <!-- CONFIG GERAIS (Colapsável) -->
                 <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden collapse-open" id="settings-accordion">
                     <button class="w-full p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" onclick="this.parentElement.classList.toggle('collapse-open')">
-                        <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="settings" class="text-indigo-500"></i> Configurações</h2>
+                        <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="settings" class="text-indigo-500"></i> Premissas e configurações</h2>
                         <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-300"></i>
                     </button>
                     <div class="collapse-content">
@@ -357,17 +358,12 @@
                 <!-- SALDO REALIZADO (Colapsável) -->
                 <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden collapse-open" id="actuals-accordion">
                     <button class="w-full p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" onclick="this.parentElement.classList.toggle('collapse-open')">
-                        <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="check-check" class="text-indigo-500"></i> Saldo Realizado</h2>
+                        <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="check-check" class="text-indigo-500"></i> Histórico de check-ins</h2>
                         <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-300"></i>
                     </button>
                     <div class="collapse-content">
                         <div class="p-6 pt-0 space-y-3">
-                            <p class="text-[11px] text-slate-400">Registre o saldo total real de um mês para comparar com a projeção no gráfico.</p>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="month" id="actual-month" class="p-2 text-xs">
-                                <input type="text" id="actual-value" placeholder="Saldo real R$" class="p-2 text-xs">
-                            </div>
-                            <button id="register-actual-button" class="w-full py-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl font-semibold text-xs hover:bg-emerald-100">Registrar</button>
+                            <p class="text-[11px] text-slate-400">Os registros feitos no Check-in do mês aparecem aqui. Remova os que estiverem errados.</p>
                             <div id="actuals-container" class="space-y-2 max-h-48 overflow-y-auto"></div>
                         </div>
                     </div>
@@ -382,7 +378,6 @@
             <details class="relative">
                 <summary class="list-none cursor-pointer px-5 py-3.5 rounded-2xl font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2"><i data-lucide="download" class="w-5 h-5"></i> Exportar <i data-lucide="chevron-down" class="w-4 h-4"></i></summary>
                 <div class="absolute left-0 mt-2 w-56 z-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl p-2 flex flex-col">
-                    <button id="export-csv-button" style="display:none" class="menu-item"><i data-lucide="file-text" class="w-4 h-4"></i> CSV</button>
                     <button id="export-xlsx-button" class="menu-item"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Excel (XLSX)</button>
                     <button id="export-pdf-button" class="menu-item"><i data-lucide="printer" class="w-4 h-4"></i> PDF / Imprimir</button>
                 </div>
@@ -392,8 +387,6 @@
                 <div class="absolute left-0 mt-2 w-64 z-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl p-2 flex flex-col">
                     <button id="export-json-button" class="menu-item"><i data-lucide="database-backup" class="w-4 h-4"></i> Fazer backup (JSON)</button>
                     <label class="menu-item"><i data-lucide="archive-restore" class="w-4 h-4"></i> Restaurar backup<input type="file" id="import-json-input" accept=".json" class="hidden"></label>
-                    <label style="display:none" class="menu-item"><i data-lucide="upload" class="w-4 h-4"></i> Importar eventos (CSV)<input type="file" id="import-csv-input" accept=".csv" class="hidden"></label>
-                    <button id="download-csv-template-button" style="display:none" class="menu-item"><i data-lucide="file-down" class="w-4 h-4"></i> Baixar modelo de CSV</button>
                     <hr class="my-1 border-slate-100 dark:border-slate-700">
                     <button id="reset-button" class="menu-item !text-red-500"><i data-lucide="rotate-ccw" class="w-4 h-4"></i> Resetar dados</button>
                 </div>
@@ -561,7 +554,7 @@
     // Escapa texto digitado pelo usuário antes de inserir em innerHTML.
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const compactBRL = (v) => { const a = Math.abs(v); if (a >= 1e6) return `R$ ${(v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`; if (a >= 1e3) return `R$ ${(v / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`; return `R$ ${Math.round(v)}`; };
-    let tableRange = 240, tableView = 'yearly', chartRange = 240, dirty = false, loadedOk = false;
+    let tableRange = 240, tableView = 'yearly', chartRange = 240, dirty = false, loadedOk = false, loadedSavedAt = 0;
     const BANK_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#14b8a6', '#8b5cf6', '#ef4444', '#0ea5e9'];
     let bankDistChartInstance = null;
     // Converte ajustes antigos (lista indexada por mês/posição da conta) para { 'AAAA-MM': { idDaConta: {...} } }.
@@ -1291,7 +1284,7 @@
             loadedOk = true;
             const defaults = getDefaultState();
             if (docSnap.exists()) { 
-                const d = docSnap.data(); 
+                const d = docSnap.data(); loadedSavedAt = d.savedAt || 0; 
                 state = { 
                     banks: (d.banks || defaults.banks).map(b => ({
                         ...b,
@@ -1372,7 +1365,7 @@
         state.events = newE;
     }
 
-    async function saveState() {
+    async function saveState(mode) {
         if (!currentUser) return; 
         updateStateFromInputs();
         const sm = document.getElementById('status-message');
@@ -1380,7 +1373,19 @@
         try { 
             if (saveBtn) { saveBtn.disabled = true; saveBtn.classList.add('opacity-60', 'cursor-not-allowed'); }
             sm.textContent = 'A sincronizar com a nuvem...'; 
-            await setDoc(doc(db, "users", currentUser.uid), { ...state, monthlyEdits: tableInputData, schemaVersion: 2 }); 
+            const ref = doc(db, "users", currentUser.uid);
+            const payload = { ...state, monthlyEdits: tableInputData, schemaVersion: 2 };
+            const bytes = new Blob([JSON.stringify(payload)]).size;
+            if (bytes > 1000 * 1024) { toast('Dados grandes demais para a nuvem (limite de cerca de 1 MB). Remova ajustes ou check-ins antigos.'); return; }
+            if (bytes > 700 * 1024) toast('Atenção: seus dados já usam mais de 70% do limite da nuvem.');
+            const remote = await getDoc(ref);
+            if (remote.exists() && (remote.data().savedAt || 0) !== loadedSavedAt) {
+                if (mode === 'auto') { toast('Salvamento automático pausado: os dados mudaram em outro dispositivo. Salve manualmente para decidir.'); return; }
+                if (!confirm('Seus dados foram alterados em outro dispositivo ou aba. Sobrescrever com esta versão?')) return;
+            }
+            const savedAt = Date.now();
+            await setDoc(ref, { ...payload, savedAt });
+            loadedSavedAt = savedAt; 
             sm.textContent = `Salvo na nuvem às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`; dirty = false; 
             setTimeout(() => sm.textContent = '', 3000); 
             renderTableAndCharts();
@@ -1471,6 +1476,7 @@
             document.getElementById('accumulation-view').classList.toggle('hidden', mode !== 'accumulation');
             document.getElementById('withdrawal-view').classList.toggle('hidden', mode !== 'withdrawal');
             document.getElementById('budget-view').classList.toggle('hidden', mode !== 'budget');
+            document.getElementById('plan-view')?.classList.toggle('hidden', mode !== 'plan');
             if (mode === 'budget') renderBudget();
             if (mode === 'withdrawal') {
                 const initBalEl = document.getElementById('withdrawal-initial-balance');
@@ -1576,15 +1582,6 @@
             }
         });
 
-        document.getElementById('register-actual-button')?.addEventListener('click', () => {
-            const monthEl = document.getElementById('actual-month'), valueEl = document.getElementById('actual-value');
-            if (!monthEl.value || !valueEl.value) return;
-            if (!state.actuals) state.actuals = {};
-            state.actuals[monthEl.value] = parseBrazilianNumber(valueEl.value);
-            renderActualsTracker();
-            renderTableAndCharts();
-            monthEl.value = ''; valueEl.value = '';
-        });
 
         document.getElementById('actuals-container')?.addEventListener('click', e => {
             const btn = e.target.closest('.remove-actual-button');
@@ -1595,10 +1592,6 @@
             }
         });
 
-        document.getElementById('recalculate-button')?.addEventListener('click', () => { 
-            updateStateFromInputs(); 
-            renderTableAndCharts(); 
-        });
 
         document.getElementById('save-button')?.addEventListener('click', saveState);
 
@@ -1725,7 +1718,7 @@
         document.getElementById('checkin-save')?.addEventListener('click', e => {
             const m = document.getElementById('checkin-month').value, v = parseBrazilianNumber(document.getElementById('checkin-value').value);
             if (!m || !v) { toast('Informe o mês e o saldo real.'); return; }
-            state.actuals[m] = v; dirty = true;
+            state.actuals[m] = v; dirty = true; renderActualsTracker();
             document.getElementById('checkin-value').value = '';
             renderTableAndCharts(); toast('Check-in registrado.');
             e.currentTarget.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1743,6 +1736,25 @@
         };
         try { if (localStorage.getItem('pp_privacy')) setPrivacy(true); } catch (err) { /* sem storage */ }
         document.getElementById('privacy-button')?.addEventListener('click', () => setPrivacy(!document.documentElement.classList.contains('privacy')));
+
+        // Organização em abas: Visão geral | Plano | Orçamento | Aposentadoria.
+        const appEl = document.getElementById('app-container'), accView = document.getElementById('accumulation-view');
+        const planView = document.createElement('div');
+        planView.id = 'plan-view'; planView.className = 'hidden grid grid-cols-1 xl:grid-cols-3 gap-8';
+        planView.innerHTML = '<div id="plan-left" class="xl:col-span-2 space-y-6"></div><div id="plan-right" class="space-y-6"></div>';
+        accView.after(planView);
+        const moveTo = (side, el) => { if (el) document.getElementById(side).appendChild(el); };
+        const mainSec = document.getElementById('banks-accordion')?.closest('section');
+        moveTo('plan-left', document.getElementById('events-container')?.closest('.rounded-3xl'));
+        moveTo('plan-left', document.getElementById('goals-container')?.closest('.rounded-3xl'));
+        ['banks-accordion', 'settings-accordion', 'scenarios-accordion', 'actuals-accordion'].forEach(id => moveTo('plan-right', document.getElementById(id)));
+        if (mainSec) {
+            mainSec.className = 'space-y-6';
+            mainSec.firstElementChild.className = 'space-y-6';
+            const rest = mainSec.children[1];
+            if (rest && !rest.children.length) rest.remove();
+        }
+        appEl.prepend(document.getElementById('action-bar'));
 
         document.getElementById('table-range')?.addEventListener('change', e => { tableRange = parseInt(e.target.value, 10); renderTableAndCharts(); });
 
@@ -1762,22 +1774,10 @@
         let autoSaveTimer;
         document.getElementById('app-container')?.addEventListener('change', () => {
             clearTimeout(autoSaveTimer);
-            autoSaveTimer = setTimeout(() => { if (dirty && currentUser && loadedOk) saveState(); }, 4000);
+            autoSaveTimer = setTimeout(() => { if (dirty && currentUser && loadedOk) saveState('auto'); }, 4000);
         });
         window.addEventListener('beforeunload', e => { if (dirty && currentUser) { e.preventDefault(); e.returnValue = ''; } });
 
-        document.getElementById('export-csv-button')?.addEventListener('click', () => { 
-            const p = calculateProjection(); 
-            let csv = "Data,Banco,S.Ini,Aporte,Rent%,Rendimento,S.Fim\n"; 
-            p.results.forEach(m => { 
-                m.banks.forEach((b, i) => {
-                    csv += `${m.date},${state.banks[i].name},${b.startBalance},${b.contribution},${b.yieldRate},${b.yieldAmount},${b.endBalance}\n`;
-                });
-            }); 
-            const blob = new Blob([csv], { type: 'text/csv' }); 
-            const url = URL.createObjectURL(blob); 
-            const a = document.createElement('a'); a.href = url; a.download = 'projecao.csv'; a.click(); 
-        });
 
         document.getElementById('export-xlsx-button')?.addEventListener('click', () => {
             const p = calculateProjection();
@@ -1796,43 +1796,7 @@
 
         document.getElementById('export-pdf-button')?.addEventListener('click', () => window.print());
 
-        document.getElementById('download-csv-template-button')?.addEventListener('click', () => {
-            const csv = "Data,Banco,Tipo,Valor\n2026-12,Principal,aporte,2000\n2027-03,Principal,saque,1500\n";
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'modelo_importacao.csv'; a.click();
-        });
 
-        document.getElementById('import-csv-input')?.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            updateStateFromInputs();
-            const text = await file.text();
-            const lines = text.split(/\r?\n/).filter(l => l.trim());
-            let imported = 0;
-            lines.slice(1).forEach(line => {
-                const parts = line.split(',').map(s => s.trim());
-                const [dateRaw, bankName, typeRaw, valueRaw] = parts;
-                if (!dateRaw || !bankName || !typeRaw || !valueRaw) return;
-                let bank = state.banks.find(b => b.name.toLowerCase() === bankName.toLowerCase());
-                if (!bank) {
-                    bank = { id: Date.now() + Math.floor(Math.random() * 1000), name: bankName, balance: 0, yieldRate: 0, limit: null, contributionStart: '', contributionEnd: '' };
-                    state.banks.push(bank);
-                }
-                const type = typeRaw.toLowerCase().includes('saque') ? 'withdrawal' : 'deposit';
-                const amount = parseBrazilianNumber(valueRaw);
-                const date = dateRaw.length >= 7 ? dateRaw.slice(0, 7) : dateRaw;
-                state.events.push({ id: Date.now() + Math.floor(Math.random() * 1000), type, date, amount, bankId: bank.id, repeat: 'none', repeatUntil: '' });
-                imported++;
-            });
-            renderBankInputs();
-            renderEvents();
-            renderTableAndCharts();
-            const sm = document.getElementById('status-message');
-            sm.textContent = `${imported} evento(s) importado(s) do CSV.`;
-            setTimeout(() => sm.textContent = '', 4000);
-            e.target.value = '';
-        });
 
         document.getElementById('reset-button')?.addEventListener('click', () => { 
             if(confirm('Resetar dados para o padrão? Esta ação não pode ser desfeita.')) { 
